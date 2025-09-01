@@ -52,6 +52,11 @@ export default function App() {
                     d[index] = +e.target.value;
                   })
                 }
+                onBlur={() =>
+                  setPlates((d) => {
+                    d.sort((a, b) => a - b);
+                  })
+                }
               />
               <button
                 type="button"
