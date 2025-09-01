@@ -91,7 +91,7 @@ export default function App() {
           }
         />
       </div>
-      <div className="text-2xl">
+      <div className="text-2xl my-5">
         Plates: {determinePlates(target, handle, validPlates).join(", ")}
       </div>
       <div className="mt-5">
