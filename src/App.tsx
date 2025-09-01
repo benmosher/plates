@@ -25,25 +25,26 @@ export default function App() {
   return (
     <div className="App">
       <h1>🏋️</h1>
-      <div>
-        <label>
-          Handle:
-          <input
-            type="number"
-            value={handle}
-            onChange={(e) => setHandle(+e.target.value)}
-          />
-        </label>
-      </div>
-      <div>
-        <label>
-          Work weight:
-          <input
-            type="number"
-            value={target}
-            onChange={(e) => setTarget(+e.target.value)}
-          />
-        </label>
+      <div
+        className="form-grid"
+        role="group"
+        aria-label="Plate calculator inputs"
+      >
+        <label htmlFor="handle">Handle</label>
+        <input
+          id="handle"
+          type="number"
+          value={handle}
+          onChange={(e) => setHandle(+e.target.value)}
+        />
+
+        <label htmlFor="target">Work weight</label>
+        <input
+          id="target"
+          type="number"
+          value={target}
+          onChange={(e) => setTarget(+e.target.value)}
+        />
       </div>
       <div>Plates: {determinePlates(target, handle).join(", ")}</div>
     </div>
