@@ -6,11 +6,14 @@ export function determinePlates(
   const platesNeeded: number[] = [];
   let weightLeft = (target - handle) / 2;
 
-  for (let i = plates.length - 1; i >= 0; i--) {
+  let i = plates.length - 1;
+  while (i >= 0 && weightLeft > 0) {
     const nextPlate = plates[i];
-    if (nextPlate <= weightLeft) {
+    if (nextPlate && nextPlate <= weightLeft) {
       platesNeeded.push(nextPlate);
       weightLeft -= nextPlate;
+    } else {
+      i--;
     }
   }
 
