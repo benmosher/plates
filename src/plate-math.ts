@@ -1,8 +1,11 @@
 export function determinePlates(
-  target: number,
-  handle: number,
+  target: number | undefined,
+  handle: number | undefined,
   plates: readonly number[]
 ) {
+  // don't bother
+  if (!target || !handle) return [];
+
   const platesNeeded: number[] = [];
   let weightLeft = (target - handle) / 2;
 

@@ -1,15 +1,24 @@
 import "./styles.css";
 import { determinePlates } from "./plate-math";
 import { useImmer } from "use-immer";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
 const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10];
 
+function numbdfined(value: string | undefined) {
+  return value ? +value : undefined;
+}
+
 export default function App() {
-  const [target, setTarget] = useState<number>(75);
-  const [handle, setHandle] = useState<number>(HANDLE_DEFAULT);
-  const [plates, setPlates] = useImmer<number[]>(PLATES);
+  const [target, setTarget] = useState<number | undefined>(75);
+  const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
+  const [plates, setPlates] = useImmer<(number | undefined)[]>(PLATES);
+  const validPlates = useMemo(
+    () => plates.filter((p) => !!p) as number[],
+    [plates]
+  );
+
   return (
     <div className="App">
       <h1>🏋️</h1>
@@ -23,7 +32,7 @@ export default function App() {
           id="handle"
           type="number"
           value={handle}
-          onChange={(e) => setHandle(+e.target.value)}
+          onChange={(e) => setHandle(numbdfined(e.target.value))}
         />
 
         <label htmlFor="target">Work weight</label>
@@ -32,11 +41,17 @@ export default function App() {
           type="number"
           value={target}
           // step by 2x smallest plate
-          step={2 * plates.reduce((acc, p) => (p < acc ? p : acc), 1)}
-          onChange={(e) => setTarget(+e.target.value)}
+          step={
+            2 *
+            (plates.reduce((acc, p) => (p && acc && p < acc ? p : acc), 1) ??
+              0.5)
+          }
+          onChange={(e) => setTarget(numbdfined(e.target.value))}
         />
       </div>
-      <div>Plates: {determinePlates(target, handle, plates).join(", ")}</div>
+      <div>
+        Plates: {determinePlates(target, handle, validPlates).join(", ")}
+      </div>
       <div>
         <h2>Plates available</h2>
         <div className="plates-available">
@@ -49,7 +64,7 @@ export default function App() {
                 value={plate}
                 onChange={(e) =>
                   setPlates((d) => {
-                    d[index] = +e.target.value;
+                    d[index] = numbdfined(e.target.value);
                   })
                 }
                 onBlur={() =>
