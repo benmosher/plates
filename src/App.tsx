@@ -107,13 +107,13 @@ export default function App() {
         <h2 className="text-2xl">Plates needed:</h2>
         <div className="text-xl my-2">{determinedPlates.join(", ")}</div>
         <div className="h-[100px] p-1 flex items-center">
-          {determinedPlates.map((plate) => {
+          {determinedPlates.map((plate, i) => {
             const style = PLATE_STYLES[plate];
             if (!style) return null;
             const { x, y, color } = style;
             return (
               <div
-                key={plate}
+                key={i}
                 className={`border border-1 ${color}`}
                 style={{ width: x, height: y }}
               >
