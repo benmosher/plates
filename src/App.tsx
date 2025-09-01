@@ -1,23 +1,9 @@
+import { determinePlates } from "./plate-math";
 import "./styles.css";
 import React, { useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
 const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
-
-function determinePlates(target: number, handle: number) {
-  const platesNeeded: number[] = [];
-  let weightLeft = (target - handle) / 2;
-
-  for (let i = PLATES.length - 1; i >= 0; i--) {
-    const nextPlate = PLATES[i];
-    if (nextPlate <= weightLeft) {
-      platesNeeded.push(nextPlate);
-      weightLeft -= nextPlate;
-    }
-  }
-
-  return platesNeeded;
-}
 
 export default function App() {
   const [target, setTarget] = useState<number>(75);
@@ -43,10 +29,11 @@ export default function App() {
           id="target"
           type="number"
           value={target}
+          step={0.5}
           onChange={(e) => setTarget(+e.target.value)}
         />
       </div>
-      <div>Plates: {determinePlates(target, handle).join(", ")}</div>
+      <div>Plates: {determinePlates(target, handle, PLATES).join(", ")}</div>
     </div>
   );
 }
