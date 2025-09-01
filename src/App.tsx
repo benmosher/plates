@@ -1,6 +1,6 @@
-import { determinePlates } from "./plate-math";
-import { produce } from "immer";
 import "./styles.css";
+import { determinePlates } from "./plate-math";
+import { useImmer } from "use-immer";
 import React, { useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
@@ -9,7 +9,7 @@ const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
 export default function App() {
   const [target, setTarget] = useState<number>(75);
   const [handle, setHandle] = useState<number>(HANDLE_DEFAULT);
-  const [plates, setPlates] = useState<number[]>(PLATES);
+  const [plates, setPlates] = useImmer<number[]>(PLATES);
   return (
     <div className="App">
       <h1>🏋️</h1>
@@ -48,35 +48,29 @@ export default function App() {
                 min={0}
                 value={plate}
                 onChange={(e) =>
-                  setPlates((p) =>
-                    produce(p, (d) => {
-                      d[index] = +e.target.value;
-                    })
-                  )
+                  setPlates((d) => {
+                    d[index] = +e.target.value;
+                  })
                 }
               />
               <button
                 type="button"
                 onClick={() =>
-                  setPlates((p) =>
-                    produce(p, (draft) => {
-                      draft.splice(index, 1);
-                    })
-                  )
+                  setPlates((draft) => {
+                    draft.splice(index, 1);
+                  })
                 }
               >
-                Remove
+                ❌
               </button>
             </div>
           ))}
           <button
             type="button"
             onClick={() =>
-              setPlates((p) =>
-                produce(p, (draft) => {
-                  draft.push(0.25);
-                })
-              )
+              setPlates((draft) => {
+                draft.push(0.25);
+              })
             }
           >
             Add Plate
