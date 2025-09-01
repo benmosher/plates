@@ -14,5 +14,12 @@ export function determinePlates(
     }
   }
 
+  if (weightLeft != 0) {
+    // If there's still weight left,
+    // jam it on as a bonus plate
+    // it might be negative!
+    platesNeeded.push(weightLeft);
+  }
+
   return platesNeeded;
 }
