@@ -1,6 +1,7 @@
 {
   "name": "react",
   "version": "1.0.0",
+  "homepage": "https://benmosher.github.io/plates/",
   "description": "",
   "keywords": [],
   "main": "src/index.tsx",
