@@ -69,7 +69,7 @@ export default function App() {
             type="button"
             onClick={() =>
               setPlates((draft) => {
-                draft.push(0.25);
+                draft.push(plates[plates.length - 1] || 5);
               })
             }
           >
