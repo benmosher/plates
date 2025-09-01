@@ -10,61 +10,102 @@ function numbdfined(value: string | undefined) {
   return value ? +value : undefined;
 }
 
+function NumberInput({
+  id,
+  value,
+  onChange,
+  onBlur,
+  step,
+  min,
+}: {
+  id?: string;
+  value?: number | undefined;
+  onChange: (value: number | undefined) => void;
+  onBlur?: () => void;
+  step?: number;
+  min?: number;
+}) {
+  return (
+    <input
+      id={id}
+      className="border border-gray-800 p-0.5 text-right"
+      type="number"
+      value={value}
+      min={min}
+      onChange={(e) => onChange(numbdfined(e.target.value))}
+      onBlur={onBlur}
+      step={step}
+    />
+  );
+}
+
+function Button({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="border border-gray-800 p-2 bg-gray-500"
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function App() {
   const [target, setTarget] = useState<number | undefined>(75);
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
   const [plates, setPlates] = useImmer<(number | undefined)[]>(PLATES);
-  const validPlates = useMemo(
-    () => plates.filter((p) => !!p) as number[],
-    [plates]
-  );
+  const validPlates = useMemo(() => {
+    const filtered = plates.filter((p) => !!p) as number[];
+    filtered.sort((a, b) => a - b);
+    return filtered;
+  }, [plates]);
 
   return (
-    <div className="App">
-      <h1>🏋️</h1>
+    <div className="m-5">
+      <h1 className="text-3xl">🏋️</h1>
       <div
-        className="form-grid"
+        className="grid grid-cols-2"
         role="group"
         aria-label="Plate calculator inputs"
       >
         <label htmlFor="handle">Handle</label>
-        <input
-          id="handle"
-          type="number"
-          value={handle}
-          onChange={(e) => setHandle(numbdfined(e.target.value))}
-        />
+        <NumberInput id="handle" value={handle} onChange={setHandle} />
 
         <label htmlFor="target">Work weight</label>
-        <input
+        <NumberInput
           id="target"
-          type="number"
           value={target}
+          onChange={setTarget}
           // step by 2x smallest plate
           step={
             2 *
             (plates.reduce((acc, p) => (p && acc && p < acc ? p : acc), 1) ??
               0.5)
           }
-          onChange={(e) => setTarget(numbdfined(e.target.value))}
         />
       </div>
-      <div>
+      <div className="text-2xl">
         Plates: {determinePlates(target, handle, validPlates).join(", ")}
       </div>
-      <div>
-        <h2>Plates available</h2>
+      <div className="mt-5">
+        <h2 className="text-xl">Plates available:</h2>
         <div className="plates-available">
           {plates.map((plate, index) => (
             <div key={index} className="plate">
-              <input
-                type="number"
+              <NumberInput
                 step={0.25}
                 min={0}
                 value={plate}
                 onChange={(e) =>
                   setPlates((d) => {
-                    d[index] = numbdfined(e.target.value);
+                    d[index] = e;
                   })
                 }
                 onBlur={() =>
@@ -85,8 +126,7 @@ export default function App() {
               </button>
             </div>
           ))}
-          <button
-            type="button"
+          <Button
             onClick={() =>
               setPlates((draft) => {
                 draft.push(plates[plates.length - 1] || 5);
@@ -94,7 +134,7 @@ export default function App() {
             }
           >
             Add Plate
-          </button>
+          </Button>
         </div>
       </div>
     </div>
