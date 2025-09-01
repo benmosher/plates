@@ -15,6 +15,9 @@ export function determinePlates(
     if (nextPlate && nextPlate <= weightLeft) {
       platesNeeded.push(nextPlate);
       weightLeft -= nextPlate;
+      if (i < plates.length - 1) {
+        i--;
+      }
     } else {
       i--;
     }
