@@ -166,6 +166,32 @@ export default function App() {
           </Button>
         </div>
       </div>
+      <div className="py-5">
+        <h2 className="text-2xl">Equipment:</h2>
+        <ul className="list-disc pl-5 underline">
+          <li>
+            <a href="https://amzn.to/45WSXPC">Handles</a>
+          </li>
+          <li>
+            <a href="https://amzn.to/3JYYlKC">Fractional plate set (lb)</a>
+          </li>
+          <li>
+            <a href="https://amzn.to/3K0g04B">10lb plates</a>
+          </li>
+          <li>
+            <a href="https://amzn.to/4n4LCEA">5lb plates</a>
+          </li>
+          <li>
+            <a href="https://amzn.to/4g1AaXY">2.5lb plates</a>
+          </li>
+          <li>
+            <a href="https://amzn.to/45Rkthi">Collars</a>
+          </li>
+        </ul>
+        <div className="text-sm my-3">
+          As an Amazon Associate, I earn from qualifying purchases.
+        </div>
+      </div>
     </div>
   );
 }
