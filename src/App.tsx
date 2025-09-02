@@ -6,6 +6,7 @@ import React, { useMemo, useState } from "react";
 const HANDLE_DEFAULT = 12.5;
 const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10];
 
+const DEFAULT_PLATE = { x: 30, y: 100, color: "bg-purple-500" };
 const PLATE_STYLES = {
   10: { x: 20, y: 100, color: "bg-gray-500" },
   5: { x: 15, y: 80, color: "bg-gray-500" },
@@ -108,16 +109,14 @@ export default function App() {
         <div className="text-xl my-2">{determinedPlates.join(", ")}</div>
         <div className="h-[100px] p-1 flex items-center">
           {determinedPlates.map((plate, i) => {
-            const style = PLATE_STYLES[plate];
-            if (!style) return null;
-            const { x, y, color } = style;
+            const { x, y, color } = PLATE_STYLES[plate] ?? DEFAULT_PLATE;
             return (
               <div
                 key={i}
-                className={`border border-1 ${color}`}
+                className={`border border-1 ${color} text-center overflow-hidden`}
                 style={{ width: x, height: y }}
               >
-                &nbsp;
+                {PLATE_STYLES[plate] ? <>&nbsp;</> : plate}
               </div>
             );
           })}
