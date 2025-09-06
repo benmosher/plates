@@ -6,6 +6,7 @@ import React, { useCallback, useMemo, useState } from "react";
 const HANDLE_DEFAULT = 12.5;
 const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
 
+// note: default plate should not be needed!
 const DEFAULT_PLATE = { x: 30, y: 100, color: "bg-purple-500" };
 const PLATE_STYLES = {
   10: { x: 20, y: 100, color: "bg-gray-500" },
@@ -72,10 +73,10 @@ function Plate({ weight }: { weight: number }) {
   const { x, y, color } = PLATE_STYLES[weight] ?? DEFAULT_PLATE;
   return (
     <div
-      className={`border border-1 ${color} text-center overflow-hidden`}
+      className={`border ${color} text-center overflow-hidden`}
       style={{ width: x, height: y }}
     >
-      {PLATE_STYLES[weight] ? <>&nbsp;</> : weight}
+      &nbsp;
     </div>
   );
 }
@@ -83,7 +84,7 @@ function Plate({ weight }: { weight: number }) {
 function Handle() {
   return (
     <div
-      className={`border border-1 bg-gray-400 text-center overflow-visible`}
+      className={`border bg-gray-400 text-center overflow-visible`}
       style={{ width: 180, height: 20, margin: "0 -50px", zIndex: -1 }}
     >
       &nbsp;
