@@ -11,7 +11,7 @@ const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
 const DEFAULT_PLATE = { x: 30, y: 100, color: "bg-purple-500" };
 const PLATE_STYLES = {
   10: { x: 20, y: 114, color: "bg-gray-500" },
-  5: { x: 18, y: 93, color: "bg-gray-500" },
+  5: { x: 15, y: 93, color: "bg-gray-500" },
   2.5: { x: 10, y: 80, color: "bg-gray-500" },
   1: { x: 13, y: 63, color: "bg-red-500" },
   0.75: { x: 10, y: 60, color: "bg-blue-500" },
