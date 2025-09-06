@@ -1,0 +1,12 @@
+{
+  "short_name": "Plates",
+  "name": "Plate Math",
+  "start_url": "https://benmosher.github.io/plates/",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "icon.png",
+      "type": "image/png"
+    }
+  ]
+}
