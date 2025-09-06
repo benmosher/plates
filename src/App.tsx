@@ -83,8 +83,8 @@ function Plate({ weight }: { weight: number }) {
 function Handle() {
   return (
     <div
-      className={`border border-1 bg-gray-400 text-center overflow-hidden`}
-      style={{ width: 80, height: 20 }}
+      className={`border border-1 bg-gray-400 text-center overflow-visible`}
+      style={{ width: 180, height: 20, margin: "0 -50px", zIndex: -1 }}
     >
       &nbsp;
     </div>
