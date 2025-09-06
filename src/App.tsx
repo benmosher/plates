@@ -93,7 +93,13 @@ function Handle() {
       </div>
       <div
         className={`border bg-gray-400 text-center overflow-visible`}
-        style={{ width: "80%", height: 20, margin: "0 -100px", zIndex: -2 }}
+        style={{
+          maxWidth: "95%",
+          width: 320,
+          height: 20,
+          margin: "0 -120px",
+          zIndex: -2,
+        }}
       >
         &nbsp;
       </div>
