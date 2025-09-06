@@ -1,6 +1,7 @@
 import "./styles.css";
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
+import cx from "classnames";
 import React, { useCallback, useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
@@ -123,6 +124,7 @@ export default function App() {
     ? possibleWeights[possibleWeights.length - 1]
     : undefined;
   const determinedPlates = determinePlates(target, handle, validPlates);
+  const validTarget = possibleWeights.includes(target ?? -1);
 
   const onWeightChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,7 +136,11 @@ export default function App() {
   return (
     <div className="m-5">
       <div className="my-5">
-        <div className="h-[120px] p-1 my-8 flex items-center justify-center">
+        <div
+          className={cx("h-[120px] p-1 my-8 flex items-center justify-center", {
+            "opacity-50": !validTarget,
+          })}
+        >
           {determinedPlates.toReversed().map((plate, i) => (
             <Plate key={-i - 1} weight={plate} />
           ))}
@@ -144,7 +150,9 @@ export default function App() {
           ))}
         </div>
         <div className="text-xl my-2">
-          {determinedPlates.join(", ") || "(empty)"}
+          {validTarget
+            ? determinedPlates.join(", ") || "(empty)"
+            : "No valid plate combination!"}
         </div>
       </div>
       <div
@@ -165,7 +173,10 @@ export default function App() {
         <input
           id="target-number"
           type="number"
-          className="border border-gray-800 p-0.5 text-right"
+          className={cx("border p-0.5 text-right", {
+            "border-red-300": !validTarget,
+            "border-gray-800": validTarget,
+          })}
           value={target}
           min={weightMin}
           max={weightMax}
