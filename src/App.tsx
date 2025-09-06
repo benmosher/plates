@@ -160,7 +160,7 @@ export default function App() {
         role="group"
         aria-label="Plate calculator inputs"
       >
-        <label htmlFor="handle">Handle</label>
+        <label htmlFor="handle">Handle + collars</label>
         <NumberInput id="handle" value={handle} onChange={setHandle} />
         <datalist id="target-options">
           {possibleWeights?.map((v) => (
@@ -191,14 +191,14 @@ export default function App() {
           min={weightMin}
           max={weightMax}
           step={weightStep}
-          className="p-4 col-span-2"
+          className="m-4 mb-8 col-span-2"
           value={target}
           onChange={onWeightChange}
         />
       </div>
 
       <div className="mt-5">
-        <h2 className="text-xl">Plates available:</h2>
+        <h2 className="text-xl">Plates available (as pairs, per dumbbell):</h2>
         <div className="plates-available">
           {plates.map((plate, index) => (
             <div key={index} className="plate">
