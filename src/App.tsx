@@ -1,5 +1,4 @@
 import "./styles.css";
-import iconURL from "/icon.png";
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
 import React, { useCallback, useMemo, useState } from "react";
@@ -84,17 +83,31 @@ function Plate({ weight }: { weight: number }) {
 
 function Handle() {
   return (
-    <div
-      className={`border bg-gray-400 text-center overflow-visible`}
-      style={{ width: 180, height: 20, margin: "0 -50px", zIndex: -1 }}
-    >
-      &nbsp;
-    </div>
+    <>
+      <div
+        className={`border bg-gray-400 text-center overflow-visible`}
+        style={{ width: 10, height: 30, margin: "0 -6px", zIndex: -1 }}
+      >
+        &nbsp;
+      </div>
+      <div
+        className={`border bg-gray-400 text-center overflow-visible`}
+        style={{ width: "80%", height: 20, margin: "0 -100px", zIndex: -2 }}
+      >
+        &nbsp;
+      </div>
+      <div
+        className={`border bg-gray-400 text-center overflow-visible`}
+        style={{ width: 10, height: 30, margin: "0 -6px", zIndex: -1 }}
+      >
+        &nbsp;
+      </div>
+    </>
   );
 }
 
 export default function App() {
-  const [target, setTarget] = useState<number | undefined>(37.5);
+  const [target, setTarget] = useState<number | undefined>(47.5);
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
   const [plates, setPlates] = useImmer<(number | undefined)[]>(PLATES);
   const validPlates = useMemo(() => {
