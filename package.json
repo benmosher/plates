@@ -20,7 +20,8 @@
     "loader-utils": "3.2.1",
     "tailwindcss": "^4.1.12",
     "typescript": "5.7.2",
-    "vite": "^7.1.4"
+    "vite": "^7.1.4",
+    "vitest": "^3.2.4"
   },
   "scripts": {
     "start": "vite",

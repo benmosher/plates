@@ -4,7 +4,7 @@ import { useImmer } from "use-immer";
 import React, { useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
-const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10];
+const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
 
 const DEFAULT_PLATE = { x: 30, y: 100, color: "bg-purple-500" };
 const PLATE_STYLES = {
