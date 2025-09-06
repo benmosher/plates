@@ -13,10 +13,10 @@ const PLATE_STYLES = {
   10: { x: 20, y: 100, color: "bg-gray-500" },
   5: { x: 15, y: 80, color: "bg-gray-500" },
   2.5: { x: 12, y: 70, color: "bg-gray-500" },
-  1: { x: 12, y: 60, color: "bg-red-500" },
+  1: { x: 13, y: 63, color: "bg-red-500" },
   0.75: { x: 10, y: 60, color: "bg-blue-500" },
-  0.5: { x: 8, y: 60, color: "bg-yellow-500" },
-  0.25: { x: 6, y: 60, color: "bg-green-500" },
+  0.5: { x: 9, y: 60, color: "bg-yellow-500" },
+  0.25: { x: 8, y: 57, color: "bg-green-500" },
 };
 
 function numbdfined(value: string | undefined) {
