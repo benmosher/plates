@@ -92,7 +92,7 @@ function Handle() {
 }
 
 export default function App() {
-  const [target, setTarget] = useState<number | undefined>(75);
+  const [target, setTarget] = useState<number | undefined>(37.5);
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
   const [plates, setPlates] = useImmer<(number | undefined)[]>(PLATES);
   const validPlates = useMemo(() => {
@@ -101,7 +101,12 @@ export default function App() {
     return filtered;
   }, [plates]);
 
+  const weightStep = validPlates[0] ? 2 * validPlates[0] : undefined;
   const possibleWeights = determineWeightSpace(handle, validPlates);
+  const weightMin = possibleWeights ? possibleWeights[0] : undefined;
+  const weightMax = possibleWeights
+    ? possibleWeights[possibleWeights.length - 1]
+    : undefined;
   const determinedPlates = determinePlates(target, handle, validPlates);
 
   const onWeightChange = useCallback(
@@ -139,6 +144,9 @@ export default function App() {
           type="number"
           className="border border-gray-800 p-0.5 text-right"
           value={target}
+          min={weightMin}
+          max={weightMax}
+          step={weightStep}
           onChange={onWeightChange}
         />
 
@@ -146,22 +154,16 @@ export default function App() {
           id="target-range"
           type="range"
           list="target-options"
-          min={possibleWeights ? possibleWeights[0] : undefined}
-          max={
-            possibleWeights
-              ? possibleWeights[possibleWeights.length - 1]
-              : undefined
-          }
-          step={2 * plates[0]!}
+          min={weightMin}
+          max={weightMax}
+          step={weightStep}
           className="border border-gray-800 p-0.5 text-right col-span-2"
           value={target}
           onChange={onWeightChange}
         />
       </div>
       <div>
-        <h2 className="text-2xl">Plates needed:</h2>
-        <div className="text-xl my-2">{determinedPlates.join(", ")}</div>
-        <div className="h-[100px] p-1 flex items-center justify-center">
+        <div className="h-[100px] p-1 my-4 flex items-center justify-center">
           {determinedPlates.toReversed().map((plate, i) => (
             <Plate key={-i - 1} weight={plate} />
           ))}
@@ -170,6 +172,8 @@ export default function App() {
             <Plate key={i} weight={plate} />
           ))}
         </div>
+
+        <div className="text-xl my-2">{determinedPlates.join(", ")}</div>
       </div>
       <div className="mt-5">
         <h2 className="text-xl">Plates available:</h2>
