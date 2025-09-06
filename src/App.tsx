@@ -120,12 +120,20 @@ export default function App() {
 
   return (
     <div className="m-5">
-      <img
-        src={iconURL}
-        alt="dumbbell with question marks"
-        width="128"
-        className="mx-auto mb-3"
-      />
+      <div className="my-5">
+        <div className="h-[100px] p-1 my-8 flex items-center justify-center">
+          {determinedPlates.toReversed().map((plate, i) => (
+            <Plate key={-i - 1} weight={plate} />
+          ))}
+          <Handle />
+          {determinedPlates.map((plate, i) => (
+            <Plate key={i} weight={plate} />
+          ))}
+        </div>
+        <div className="text-xl my-2">
+          {determinedPlates.join(", ") || "(empty)"}
+        </div>
+      </div>
       <div
         className="grid grid-cols-2"
         role="group"
@@ -164,19 +172,7 @@ export default function App() {
           onChange={onWeightChange}
         />
       </div>
-      <div>
-        <div className="h-[100px] p-1 my-4 flex items-center justify-center">
-          {determinedPlates.toReversed().map((plate, i) => (
-            <Plate key={-i - 1} weight={plate} />
-          ))}
-          <Handle />
-          {determinedPlates.map((plate, i) => (
-            <Plate key={i} weight={plate} />
-          ))}
-        </div>
 
-        <div className="text-xl my-2">{determinedPlates.join(", ")}</div>
-      </div>
       <div className="mt-5">
         <h2 className="text-xl">Plates available:</h2>
         <div className="plates-available">
