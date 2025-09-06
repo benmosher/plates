@@ -113,7 +113,12 @@ export default function App() {
 
   return (
     <div className="m-5">
-      <h1 className="text-3xl">🏋️</h1>
+      <img
+        src="/icon.png"
+        alt="dumbbell with question marks"
+        width="128"
+        className="mx-auto mb-3"
+      />
       <div
         className="grid grid-cols-2"
         role="group"
