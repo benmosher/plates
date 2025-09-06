@@ -159,7 +159,7 @@ export default function App() {
           min={weightMin}
           max={weightMax}
           step={weightStep}
-          className="border border-gray-800 p-0.5 text-right col-span-2"
+          className="p-4 col-span-2"
           value={target}
           onChange={onWeightChange}
         />
