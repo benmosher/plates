@@ -68,6 +68,29 @@ function Button({
   );
 }
 
+function Plate({ weight }: { weight: number }) {
+  const { x, y, color } = PLATE_STYLES[weight] ?? DEFAULT_PLATE;
+  return (
+    <div
+      className={`border border-1 ${color} text-center overflow-hidden`}
+      style={{ width: x, height: y }}
+    >
+      {PLATE_STYLES[weight] ? <>&nbsp;</> : weight}
+    </div>
+  );
+}
+
+function Handle() {
+  return (
+    <div
+      className={`border border-1 bg-gray-400 text-center overflow-hidden`}
+      style={{ width: 80, height: 20 }}
+    >
+      &nbsp;
+    </div>
+  );
+}
+
 export default function App() {
   const [target, setTarget] = useState<number | undefined>(75);
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
@@ -133,19 +156,14 @@ export default function App() {
       <div>
         <h2 className="text-2xl">Plates needed:</h2>
         <div className="text-xl my-2">{determinedPlates.join(", ")}</div>
-        <div className="h-[100px] p-1 flex items-center">
-          {determinedPlates.map((plate, i) => {
-            const { x, y, color } = PLATE_STYLES[plate] ?? DEFAULT_PLATE;
-            return (
-              <div
-                key={i}
-                className={`border border-1 ${color} text-center overflow-hidden`}
-                style={{ width: x, height: y }}
-              >
-                {PLATE_STYLES[plate] ? <>&nbsp;</> : plate}
-              </div>
-            );
-          })}
+        <div className="h-[100px] p-1 flex items-center justify-center">
+          {determinedPlates.toReversed().map((plate, i) => (
+            <Plate key={-i - 1} weight={plate} />
+          ))}
+          <Handle />
+          {determinedPlates.map((plate, i) => (
+            <Plate key={i} weight={plate} />
+          ))}
         </div>
       </div>
       <div className="mt-5">
