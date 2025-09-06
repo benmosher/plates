@@ -10,9 +10,9 @@ const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
 // note: default plate should not be needed!
 const DEFAULT_PLATE = { x: 30, y: 100, color: "bg-purple-500" };
 const PLATE_STYLES = {
-  10: { x: 20, y: 100, color: "bg-gray-500" },
-  5: { x: 15, y: 80, color: "bg-gray-500" },
-  2.5: { x: 12, y: 70, color: "bg-gray-500" },
+  10: { x: 20, y: 114, color: "bg-gray-500" },
+  5: { x: 18, y: 93, color: "bg-gray-500" },
+  2.5: { x: 10, y: 80, color: "bg-gray-500" },
   1: { x: 13, y: 63, color: "bg-red-500" },
   0.75: { x: 10, y: 60, color: "bg-blue-500" },
   0.5: { x: 9, y: 60, color: "bg-yellow-500" },
@@ -121,7 +121,7 @@ export default function App() {
   return (
     <div className="m-5">
       <div className="my-5">
-        <div className="h-[100px] p-1 my-8 flex items-center justify-center">
+        <div className="h-[120px] p-1 my-8 flex items-center justify-center">
           {determinedPlates.toReversed().map((plate, i) => (
             <Plate key={-i - 1} weight={plate} />
           ))}
