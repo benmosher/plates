@@ -1,4 +1,5 @@
 import "./styles.css";
+import iconURL from "/icon.png";
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
 import React, { useCallback, useMemo, useState } from "react";
@@ -120,7 +121,7 @@ export default function App() {
   return (
     <div className="m-5">
       <img
-        src="/icon.png"
+        src={iconURL}
         alt="dumbbell with question marks"
         width="128"
         className="mx-auto mb-3"
