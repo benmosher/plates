@@ -1,7 +1,7 @@
 import "./styles.css";
-import { determinePlates } from "./plate-math";
+import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
 const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
@@ -78,7 +78,15 @@ export default function App() {
     return filtered;
   }, [plates]);
 
+  const possibleWeights = determineWeightSpace(handle, validPlates);
   const determinedPlates = determinePlates(target, handle, validPlates);
+
+  const onWeightChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setTarget(numbdfined(e.target.value));
+    },
+    [setTarget]
+  );
 
   return (
     <div className="m-5">
@@ -90,18 +98,36 @@ export default function App() {
       >
         <label htmlFor="handle">Handle</label>
         <NumberInput id="handle" value={handle} onChange={setHandle} />
-
+        <datalist id="target-options">
+          {possibleWeights?.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </datalist>
         <label htmlFor="target">Work weight</label>
-        <NumberInput
-          id="target"
+        <input
+          id="target-number"
+          type="number"
+          className="border border-gray-800 p-0.5 text-right"
           value={target}
-          onChange={setTarget}
-          // step by 2x smallest plate
-          step={
-            2 *
-            (plates.reduce((acc, p) => (p && acc && p < acc ? p : acc), 1) ??
-              0.5)
+          onChange={onWeightChange}
+        />
+
+        <input
+          id="target-range"
+          type="range"
+          list="target-options"
+          min={possibleWeights ? possibleWeights[0] : undefined}
+          max={
+            possibleWeights
+              ? possibleWeights[possibleWeights.length - 1]
+              : undefined
           }
+          step={2 * plates[0]!}
+          className="border border-gray-800 p-0.5 text-right col-span-2"
+          value={target}
+          onChange={onWeightChange}
         />
       </div>
       <div>
