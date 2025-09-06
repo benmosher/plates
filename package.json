@@ -25,7 +25,8 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "test": "vitest run"
   },
   "browserslist": [
     ">0.2%",
