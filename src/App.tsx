@@ -77,20 +77,28 @@ function Plate({ weight }: { weight: number }) {
   );
 }
 
+const HANDLE_COLOR = "var(--pico-color-zinc-300)";
+function Nubbin() {
+  return (
+    <div
+      style={{
+        width: 8,
+        height: 30,
+        margin: "0 -4px",
+        zIndex: -1,
+        overflow: "visible",
+        background: HANDLE_COLOR,
+        border: "1px solid",
+        borderRadius: 2,
+      }}
+    />
+  );
+}
+
 function Handle() {
-  const handleColor = "var(--pico-color-zinc-300)";
-  const nubbinStyle = {
-    width: 10,
-    height: 30,
-    margin: "0 -6px",
-    zIndex: -1,
-    overflow: "visible",
-    background: handleColor,
-    border: "1px solid",
-  };
   return (
     <>
-      <div style={nubbinStyle}>&nbsp;</div>
+      <Nubbin />
       <div
         style={{
           border: "1px solid",
@@ -99,13 +107,11 @@ function Handle() {
           width: 320,
           height: 18,
           margin: "0 -120px",
-          background: handleColor,
+          background: HANDLE_COLOR,
           zIndex: -2,
         }}
-      >
-        &nbsp;
-      </div>
-      <div style={nubbinStyle}>&nbsp;</div>
+      />
+      <Nubbin />
     </>
   );
 }
@@ -149,6 +155,7 @@ export default function App() {
           justifyContent: "center",
         }}
       >
+        <Nubbin />
         {determinedPlates.toReversed().map((plate, i) => (
           <Plate key={-i - 1} weight={plate} />
         ))}
@@ -156,6 +163,7 @@ export default function App() {
         {determinedPlates.map((plate, i) => (
           <Plate key={i} weight={plate} />
         ))}
+        <Nubbin />
       </section>
       <h3>
         {validTarget
