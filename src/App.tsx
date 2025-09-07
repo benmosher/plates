@@ -74,7 +74,7 @@ function Plate({ weight }: { weight: number }) {
   const { x, y, color } = PLATE_STYLES[weight] ?? DEFAULT_PLATE;
   return (
     <div
-      className={`border ${color} text-center overflow-hidden`}
+      className={`border rounded-lg ${color} text-center overflow-hidden mx-[-0.5px]`}
       style={{ width: x, height: y }}
     >
       &nbsp;
