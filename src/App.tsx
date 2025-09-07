@@ -143,7 +143,7 @@ export default function App() {
   );
 
   return (
-    <div className="m-5">
+    <main className="m-5">
       <div className="my-5">
         <div
           className={cx("h-[120px] p-1 my-8 flex items-center justify-center", {
@@ -206,9 +206,9 @@ export default function App() {
         />
       </div>
 
-      <div className="mt-5">
-        <h2 className="text-xl">Plates available (as pairs, per dumbbell):</h2>
-        <div className="plates-available">
+      <details className="mt-5">
+        <summary>Plates available (as pairs, per dumbbell)</summary>
+        <div>
           {plates.map((plate, index) => (
             <div key={index} className="plate">
               <NumberInput
@@ -248,9 +248,9 @@ export default function App() {
             Add Plate
           </Button>
         </div>
-      </div>
-      <div className="py-5">
-        <h2 className="text-2xl">Equipment:</h2>
+      </details>
+      <details>
+        <summary>Equipment</summary>
         <ul className="list-disc pl-5 underline">
           <li>
             <a href="https://amzn.to/45WSXPC">Handles</a>
@@ -274,7 +274,7 @@ export default function App() {
         <div className="text-sm my-3">
           As an Amazon Associate, I earn from qualifying purchases.
         </div>
-      </div>
-    </div>
+      </details>
+    </main>
   );
 }
