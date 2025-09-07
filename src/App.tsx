@@ -5,19 +5,29 @@ import cx from "classnames";
 import React, { useCallback, useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
-const PLATES = [0.25, 0.5, 0.75, 1, 2.5, 5, 10, 10, 10];
+const PLATES_DEFAULT = [
+  "0.25",
+  "0.5",
+  "0.75",
+  "1",
+  "2.5",
+  "5",
+  "10",
+  "10",
+  "10",
+];
 
-// note: default plate should not be needed!
-const DEFAULT_PLATE = { x: 30, y: 100, color: "bg-purple-500" };
-const PLATE_STYLES = {
-  10: { x: 20, y: 114, color: "bg-gray-500" },
-  5: { x: 15, y: 93, color: "bg-gray-500" },
-  2.5: { x: 10, y: 80, color: "bg-gray-500" },
-  1: { x: 13, y: 63, color: "bg-red-500" },
-  0.75: { x: 10, y: 60, color: "bg-blue-500" },
-  0.5: { x: 9, y: 60, color: "bg-yellow-500" },
-  0.25: { x: 8, y: 57, color: "bg-green-500" },
-};
+type Plate = { x: number; y: number; color: string };
+const DEFAULT_PLATE: Plate = { x: 30, y: 100, color: "bg-purple-500" };
+const PLATE_STYLES = new Map<number, Plate>([
+  [10, { x: 20, y: 114, color: "bg-gray-500" }],
+  [5, { x: 15, y: 93, color: "bg-gray-500" }],
+  [2.5, { x: 10, y: 80, color: "bg-gray-500" }],
+  [1, { x: 13, y: 63, color: "bg-red-500" }],
+  [0.75, { x: 10, y: 60, color: "bg-blue-500" }],
+  [0.5, { x: 9, y: 60, color: "bg-yellow-500" }],
+  [0.25, { x: 8, y: 57, color: "bg-green-500" }],
+]);
 
 function numbdfined(value: string | undefined) {
   return value ? +value : undefined;
@@ -71,7 +81,7 @@ function Button({
 }
 
 function Plate({ weight }: { weight: number }) {
-  const { x, y, color } = PLATE_STYLES[weight] ?? DEFAULT_PLATE;
+  const { x, y, color } = PLATE_STYLES.get(weight) ?? DEFAULT_PLATE;
   return (
     <div
       className={`border rounded-lg ${color} text-center overflow-hidden mx-[-0.5px]`}
@@ -116,9 +126,9 @@ function Handle() {
 export default function App() {
   const [target, setTarget] = useState<number | undefined>(47.5);
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
-  const [plates, setPlates] = useImmer<(number | undefined)[]>(PLATES);
+  const [plates, setPlates] = useImmer<(string | undefined)[]>(PLATES_DEFAULT);
   const validPlates = useMemo(() => {
-    const filtered = plates.filter((p) => !!p) as number[];
+    const filtered = plates.map((p) => numbdfined(p)).filter((p) => p != null);
     filtered.sort((a, b) => a - b);
     return filtered;
   }, [plates]);
@@ -211,18 +221,19 @@ export default function App() {
         <div>
           {plates.map((plate, index) => (
             <div key={index} className="plate">
-              <NumberInput
+              <input
+                type="number"
                 step={0.25}
                 min={0}
                 value={plate}
                 onChange={(e) =>
                   setPlates((d) => {
-                    d[index] = e;
+                    d[index] = e.target.value;
                   })
                 }
                 onBlur={() =>
                   setPlates((d) => {
-                    d.sort((a, b) => a - b);
+                    d.sort((a, b) => +a! - +b!);
                   })
                 }
               />
@@ -241,7 +252,7 @@ export default function App() {
           <Button
             onClick={() =>
               setPlates((draft) => {
-                draft.push(plates[plates.length - 1] || 5);
+                draft.push(plates[plates.length - 1] || "5");
               })
             }
           >
