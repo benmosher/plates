@@ -124,7 +124,10 @@ export default function App() {
   }, [plates]);
 
   const weightStep = validPlates[0] ? 2 * validPlates[0] : undefined;
-  const possibleWeights = determineWeightSpace(handle, validPlates);
+  const possibleWeights = useMemo(
+    () => determineWeightSpace(handle, validPlates),
+    [handle, validPlates]
+  );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
     ? possibleWeights[possibleWeights.length - 1]
