@@ -1,7 +1,5 @@
-import "./styles.css";
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
-import cx from "classnames";
 import React, { useCallback, useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
@@ -18,15 +16,15 @@ const PLATES_DEFAULT = [
 ];
 
 type Plate = { x: number; y: number; color: string };
-const DEFAULT_PLATE: Plate = { x: 30, y: 100, color: "bg-purple-500" };
+const DEFAULT_PLATE: Plate = { x: 30, y: 100, color: "purple" };
 const PLATE_STYLES = new Map<number, Plate>([
-  [10, { x: 20, y: 114, color: "bg-gray-500" }],
-  [5, { x: 15, y: 93, color: "bg-gray-500" }],
-  [2.5, { x: 10, y: 80, color: "bg-gray-500" }],
-  [1, { x: 13, y: 63, color: "bg-red-500" }],
-  [0.75, { x: 10, y: 60, color: "bg-blue-500" }],
-  [0.5, { x: 9, y: 60, color: "bg-yellow-500" }],
-  [0.25, { x: 8, y: 57, color: "bg-green-500" }],
+  [10, { x: 20, y: 114, color: "var(--pico-color-zinc-500)" }],
+  [5, { x: 15, y: 93, color: "var(--pico-color-zinc-450)" }],
+  [2.5, { x: 10, y: 80, color: "var(--pico-color-zinc-400)" }],
+  [1, { x: 13, y: 63, color: "var(--pico-color-red-450)" }],
+  [0.75, { x: 10, y: 60, color: "var(--pico-color-blue-500)" }],
+  [0.5, { x: 9, y: 60, color: "var(--pico-color-amber-200)" }],
+  [0.25, { x: 8, y: 57, color: "var(--pico-color-green-200)" }],
 ]);
 
 function numbdfined(value: string | undefined) {
@@ -51,7 +49,6 @@ function NumberInput({
   return (
     <input
       id={id}
-      className="border border-gray-800 p-0.5 text-right"
       type="number"
       value={value}
       min={min}
@@ -62,30 +59,18 @@ function NumberInput({
   );
 }
 
-function Button({
-  onClick,
-  children,
-}: {
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="border border-gray-800 p-2 bg-gray-500"
-    >
-      {children}
-    </button>
-  );
-}
-
 function Plate({ weight }: { weight: number }) {
   const { x, y, color } = PLATE_STYLES.get(weight) ?? DEFAULT_PLATE;
   return (
     <div
-      className={`border rounded-lg ${color} text-center overflow-hidden mx-[-0.5px]`}
-      style={{ width: x, height: y }}
+      style={{
+        width: x,
+        height: y,
+        border: "1px solid",
+        background: color,
+        borderRadius: 8,
+        margin: "0 -0.5px",
+      }}
     >
       &nbsp;
     </div>
@@ -93,32 +78,34 @@ function Plate({ weight }: { weight: number }) {
 }
 
 function Handle() {
+  const handleColor = "var(--pico-color-zinc-300)";
+  const nubbinStyle = {
+    width: 10,
+    height: 30,
+    margin: "0 -6px",
+    zIndex: -1,
+    overflow: "visible",
+    background: handleColor,
+    border: "1px solid",
+  };
   return (
     <>
+      <div style={nubbinStyle}>&nbsp;</div>
       <div
-        className={`border bg-gray-400 text-center overflow-visible`}
-        style={{ width: 10, height: 30, margin: "0 -6px", zIndex: -1 }}
-      >
-        &nbsp;
-      </div>
-      <div
-        className={`border bg-gray-400 text-center overflow-visible`}
         style={{
+          border: "1px solid",
+          borderRadius: 4,
           maxWidth: "95%",
           width: 320,
-          height: 20,
+          height: 18,
           margin: "0 -120px",
+          background: handleColor,
           zIndex: -2,
         }}
       >
         &nbsp;
       </div>
-      <div
-        className={`border bg-gray-400 text-center overflow-visible`}
-        style={{ width: 10, height: 30, margin: "0 -6px", zIndex: -1 }}
-      >
-        &nbsp;
-      </div>
+      <div style={nubbinStyle}>&nbsp;</div>
     </>
   );
 }
@@ -153,34 +140,33 @@ export default function App() {
   );
 
   return (
-    <main className="m-5">
-      <div className="my-5">
-        <div
-          className={cx("h-[120px] p-1 my-8 flex items-center justify-center", {
-            "opacity-50": !validTarget,
-          })}
-        >
-          {determinedPlates.toReversed().map((plate, i) => (
-            <Plate key={-i - 1} weight={plate} />
-          ))}
-          <Handle />
-          {determinedPlates.map((plate, i) => (
-            <Plate key={i} weight={plate} />
-          ))}
-        </div>
-        <div className="text-xl my-2">
-          {validTarget
-            ? determinedPlates.join(", ") || "(empty)"
-            : "No valid plate combination!"}
-        </div>
-      </div>
-      <div
-        className="grid grid-cols-2"
-        role="group"
-        aria-label="Plate calculator inputs"
+    <>
+      <section
+        style={{
+          height: 140,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
-        <label htmlFor="handle">Handle + collars</label>
-        <NumberInput id="handle" value={handle} onChange={setHandle} />
+        {determinedPlates.toReversed().map((plate, i) => (
+          <Plate key={-i - 1} weight={plate} />
+        ))}
+        <Handle />
+        {determinedPlates.map((plate, i) => (
+          <Plate key={i} weight={plate} />
+        ))}
+      </section>
+      <h3>
+        {validTarget
+          ? determinedPlates.join(", ") || "(empty)"
+          : "No valid plate combination!"}
+      </h3>
+      <form>
+        <label>
+          Handle + collars
+          <NumberInput id="handle" value={handle} onChange={setHandle} />
+        </label>
         <datalist id="target-options">
           {possibleWeights?.map((v) => (
             <option key={v} value={v}>
@@ -188,39 +174,36 @@ export default function App() {
             </option>
           ))}
         </datalist>
-        <label htmlFor="target">Work weight</label>
-        <input
-          id="target-number"
-          type="number"
-          className={cx("border p-0.5 text-right", {
-            "border-red-300": !validTarget,
-            "border-gray-800": validTarget,
-          })}
-          value={target}
-          min={weightMin}
-          max={weightMax}
-          step={weightStep}
-          onChange={onWeightChange}
-        />
+        <label>
+          Work weight
+          <input
+            id="target-number"
+            type="number"
+            value={target}
+            min={weightMin}
+            max={weightMax}
+            step={weightStep}
+            onChange={onWeightChange}
+            aria-invalid={!validTarget}
+          />
+          <input
+            id="target-range"
+            type="range"
+            list="target-options"
+            min={weightMin}
+            max={weightMax}
+            step={weightStep}
+            value={target}
+            onChange={onWeightChange}
+          />
+        </label>
+      </form>
 
-        <input
-          id="target-range"
-          type="range"
-          list="target-options"
-          min={weightMin}
-          max={weightMax}
-          step={weightStep}
-          className="m-4 mb-8 col-span-2"
-          value={target}
-          onChange={onWeightChange}
-        />
-      </div>
-
-      <details className="mt-5">
+      <details>
         <summary>Plates available (as pairs, per dumbbell)</summary>
-        <div>
+        <form>
           {plates.map((plate, index) => (
-            <div key={index} className="plate">
+            <fieldset role="group" key={index}>
               <input
                 type="number"
                 step={0.25}
@@ -245,11 +228,12 @@ export default function App() {
                   })
                 }
               >
-                ❌
+                Remove
               </button>
-            </div>
+            </fieldset>
           ))}
-          <Button
+          <button
+            type="button"
             onClick={() =>
               setPlates((draft) => {
                 draft.push(plates[plates.length - 1] || "5");
@@ -257,12 +241,12 @@ export default function App() {
             }
           >
             Add Plate
-          </Button>
-        </div>
+          </button>
+        </form>
       </details>
-      <details>
+      <details open>
         <summary>Equipment</summary>
-        <ul className="list-disc pl-5 underline">
+        <ul>
           <li>
             <a href="https://amzn.to/45WSXPC">Handles</a>
           </li>
@@ -282,10 +266,8 @@ export default function App() {
             <a href="https://amzn.to/45Rkthi">Collars</a>
           </li>
         </ul>
-        <div className="text-sm my-3">
-          As an Amazon Associate, I earn from qualifying purchases.
-        </div>
+        <small>As an Amazon Associate, I earn from qualifying purchases.</small>
       </details>
-    </main>
+    </>
   );
 }

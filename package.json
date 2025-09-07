@@ -7,19 +7,16 @@
   "keywords": [],
   "main": "src/index.tsx",
   "dependencies": {
-    "classnames": "^2.5.1",
     "immer": "^10.1.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "use-immer": "^0.11.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.12",
     "@types/react": "19.0.0",
     "@types/react-dom": "19.0.0",
     "@vitejs/plugin-react": "^5.0.2",
     "loader-utils": "3.2.1",
-    "tailwindcss": "^4.1.12",
     "typescript": "5.7.2",
     "vite": "^7.1.4",
     "vitest": "^3.2.4"
