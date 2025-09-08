@@ -1,20 +1,20 @@
-export function determinePlates(
+export function determinePlates<Plate extends { weight: number }>(
   target: number | undefined,
   handle: number | undefined,
-  plates: readonly number[]
-) {
+  plates: readonly Plate[]
+): readonly Plate[] {
   // don't bother
   if (!target || !handle) return [];
 
-  const platesNeeded: number[] = [];
+  const platesNeeded: Plate[] = [];
   let weightLeft = (target - handle) / 2;
 
   let i = plates.length - 1;
   while (i >= 0 && weightLeft > 0) {
     const nextPlate = plates[i];
-    if (nextPlate && nextPlate <= weightLeft) {
+    if (nextPlate && nextPlate.weight <= weightLeft) {
       platesNeeded.push(nextPlate);
-      weightLeft -= nextPlate;
+      weightLeft -= nextPlate.weight;
     }
     i--;
   }
@@ -32,10 +32,6 @@ export function determinePlateCombos(
   plates: readonly number[],
   pivot: number = 0
 ): number[] {
-  if (!isStrictlyAscending(plates)) {
-    throw new Error("plates must be in strictly ascending order");
-  }
-
   // base case
   if (pivot >= plates.length) return [0];
 
@@ -81,13 +77,4 @@ function _merge(a: number[], b: number[]) {
   while (bi < b.length) result.push(b[bi++]);
 
   return result;
-}
-
-function isStrictlyAscending(arr: readonly Plate[]) {
-  for (let i = 1; i < arr.length; i++) {
-    if (arr[i].weight <= arr[i - 1].weight) {
-      return false;
-    }
-  }
-  return true;
 }

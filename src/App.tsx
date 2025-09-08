@@ -3,29 +3,18 @@ import { useImmer } from "use-immer";
 import React, { useCallback, useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
-const PLATES_DEFAULT = [
-  "0.25",
-  "0.5",
-  "0.75",
-  "1",
-  "2.5",
-  "5",
-  "10",
-  "10",
-  "10",
+type Plate = { weight: number; x: number; y: number; color: string };
+const PLATES_DEFAULT: readonly Plate[] = [
+  { weight: 0.25, x: 8, y: 57, color: "#62D926" },
+  { weight: 0.5, x: 9, y: 60, color: "#FFBF00" },
+  { weight: 0.75, x: 10, y: 60, color: "#3C71F7" },
+  { weight: 1, x: 13, y: 63, color: "#EE402E" },
+  { weight: 2.5, x: 10, y: 80, color: "#8891A4" },
+  { weight: 5, x: 15, y: 93, color: "#7B8495" },
+  { weight: 10, x: 20, y: 114, color: "#6F7887" },
+  { weight: 10, x: 20, y: 114, color: "#6F7887" },
+  { weight: 10, x: 20, y: 114, color: "#6F7887" },
 ];
-
-type Plate = { x: number; y: number; color: string };
-const DEFAULT_PLATE: Plate = { x: 30, y: 100, color: "purple" };
-const PLATE_STYLES = new Map<number, Plate>([
-  [10, { x: 20, y: 114, color: "var(--pico-color-zinc-500)" }],
-  [5, { x: 15, y: 93, color: "var(--pico-color-zinc-450)" }],
-  [2.5, { x: 10, y: 80, color: "var(--pico-color-zinc-400)" }],
-  [1, { x: 13, y: 63, color: "var(--pico-color-red-450)" }],
-  [0.75, { x: 10, y: 60, color: "var(--pico-color-blue-500)" }],
-  [0.5, { x: 9, y: 60, color: "var(--pico-color-amber-200)" }],
-  [0.25, { x: 8, y: 57, color: "var(--pico-color-green-200)" }],
-]);
 
 function numbdfined(value: string | undefined) {
   return value ? +value : undefined;
@@ -59,8 +48,7 @@ function NumberInput({
   );
 }
 
-function Plate({ weight }: { weight: number }) {
-  const { x, y, color } = PLATE_STYLES.get(weight) ?? DEFAULT_PLATE;
+function DisplayPlate({ x, y, color }: Pick<Plate, "x" | "y" | "color">) {
   return (
     <div
       style={{
@@ -119,16 +107,20 @@ function Handle() {
 export default function App() {
   const [target, setTarget] = useState<number | undefined>(47.5);
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
-  const [plates, setPlates] = useImmer<(string | undefined)[]>(PLATES_DEFAULT);
+  const [plates, setPlates] = useImmer<readonly Plate[]>(PLATES_DEFAULT);
   const validPlates = useMemo(() => {
-    const filtered = plates.map((p) => numbdfined(p)).filter((p) => p != null);
-    filtered.sort((a, b) => a - b);
+    const filtered = plates.slice();
+    filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
   }, [plates]);
 
-  const weightStep = validPlates[0] ? 2 * validPlates[0] : undefined;
+  const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
   const possibleWeights = useMemo(
-    () => determineWeightSpace(handle, validPlates),
+    () =>
+      determineWeightSpace(
+        handle,
+        validPlates.map((p) => p.weight)
+      ),
     [handle, validPlates]
   );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
@@ -157,17 +149,17 @@ export default function App() {
       >
         <Nubbin />
         {determinedPlates.toReversed().map((plate, i) => (
-          <Plate key={-i - 1} weight={plate} />
+          <DisplayPlate key={-i - 1} {...plate} />
         ))}
         <Handle />
         {determinedPlates.map((plate, i) => (
-          <Plate key={i} weight={plate} />
+          <DisplayPlate key={i} {...plate} />
         ))}
         <Nubbin />
       </section>
       <h3>
         {validTarget
-          ? determinedPlates.join(", ") || "(empty)"
+          ? determinedPlates.map((p) => p.weight).join(", ") || "(empty)"
           : "No valid plate combination!"}
       </h3>
       <form>
@@ -210,22 +202,55 @@ export default function App() {
             Handle + collars
             <NumberInput id="handle" value={handle} onChange={setHandle} />
           </label>
-          <label>Pairs of plates (per dumbbell)</label>
+          <label>
+            Pairs of plates (per dumbbell): weight / color / thickness /
+            diameter
+          </label>
           {plates.map((plate, index) => (
             <fieldset role="group" key={index}>
               <input
                 type="number"
                 step={0.25}
                 min={0}
-                value={plate}
+                value={plate.weight}
                 onChange={(e) =>
                   setPlates((d) => {
-                    d[index] = e.target.value;
+                    d[index].weight = +e.target.value;
                   })
                 }
                 onBlur={() =>
                   setPlates((d) => {
-                    d.sort((a, b) => +a! - +b!);
+                    d.sort((a, b) => +a.weight - +b.weight);
+                  })
+                }
+              />
+              <input
+                type="color"
+                value={plate.color}
+                onChange={(e) =>
+                  setPlates((d) => {
+                    d[index].color = e.target.value;
+                  })
+                }
+              />
+              <input
+                type="number"
+                step={1}
+                value={plate.x}
+                onChange={(e) => {
+                  setPlates((d) => {
+                    d[index].x = +e.target.value;
+                  });
+                }}
+              />
+              <input
+                type="number"
+                step={1}
+                max={120}
+                value={plate.y}
+                onChange={(e) =>
+                  setPlates((d) => {
+                    d[index].y = +e.target.value;
                   })
                 }
               />
