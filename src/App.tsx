@@ -171,10 +171,6 @@ export default function App() {
           : "No valid plate combination!"}
       </h3>
       <form>
-        <label>
-          Handle + collars
-          <NumberInput id="handle" value={handle} onChange={setHandle} />
-        </label>
         <datalist id="target-options">
           {possibleWeights?.map((v) => (
             <option key={v} value={v}>
@@ -183,7 +179,7 @@ export default function App() {
           ))}
         </datalist>
         <label>
-          Work weight
+          Input work weight:
           <input
             id="target-number"
             type="number"
@@ -208,8 +204,13 @@ export default function App() {
       </form>
 
       <details>
-        <summary>Plates available (as pairs, per dumbbell)</summary>
+        <summary>Available weights</summary>
         <form>
+          <label>
+            Handle + collars
+            <NumberInput id="handle" value={handle} onChange={setHandle} />
+          </label>
+          <label>Pairs of plates (per dumbbell)</label>
           {plates.map((plate, index) => (
             <fieldset role="group" key={index}>
               <input
@@ -252,11 +253,13 @@ export default function App() {
           </button>
         </form>
       </details>
-      <details open>
-        <summary>Equipment</summary>
+      <details>
+        <summary>Ready for more?</summary>
         <ul>
           <li>
-            <a href="https://amzn.to/45WSXPC">Handles</a>
+            <a href="https://amzn.to/45WSXPC">
+              Loadable Olympic dumbbell handles
+            </a>
           </li>
           <li>
             <a href="https://amzn.to/3JYYlKC">Fractional plate set (lb)</a>
