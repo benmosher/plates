@@ -65,7 +65,7 @@ function DisplayPlate({ x, y, color }: Pick<Plate, "x" | "y" | "color">) {
   );
 }
 
-const HANDLE_COLOR = "var(--pico-color-zinc-300)";
+const HANDLE_COLOR = "#A4ACBA";
 function Nubbin() {
   return (
     <div
