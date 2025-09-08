@@ -1,22 +1,28 @@
-export function determinePlates<Plate extends { weight: number }>(
+export function determinePlates<
+  Plate extends { weight: number; count: number }
+>(
   target: number | undefined,
   handle: number | undefined,
   plates: readonly Plate[]
 ): readonly Plate[] {
   // don't bother
-  if (!target || !handle) return [];
+  if (!target || !handle || !plates.length) return [];
 
   const platesNeeded: Plate[] = [];
   let weightLeft = (target - handle) / 2;
 
   let i = plates.length - 1;
-  while (i >= 0 && weightLeft > 0) {
-    const nextPlate = plates[i];
-    if (nextPlate && nextPlate.weight <= weightLeft) {
-      platesNeeded.push(nextPlate);
-      weightLeft -= nextPlate.weight;
+  let { weight, count } = plates[i];
+  while (weightLeft > 0) {
+    if (weight <= weightLeft) {
+      platesNeeded.push(plates[i]);
+      weightLeft -= weight;
     }
-    i--;
+    // move to next plate if none left
+    if (--count <= 0) {
+      if (--i < 0) break;
+      ({ weight, count } = plates[i]);
+    }
   }
 
   return platesNeeded;

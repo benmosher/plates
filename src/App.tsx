@@ -3,17 +3,21 @@ import { useImmer } from "use-immer";
 import React, { useCallback, useMemo, useState } from "react";
 
 const HANDLE_DEFAULT = 12.5;
-type Plate = { weight: number; x: number; y: number; color: string };
+type Plate = {
+  weight: number;
+  x: number;
+  y: number;
+  color: string;
+  count: number;
+};
 const PLATES_DEFAULT: readonly Plate[] = [
-  { weight: 0.25, x: 8, y: 57, color: "#62D926" },
-  { weight: 0.5, x: 9, y: 60, color: "#FFBF00" },
-  { weight: 0.75, x: 10, y: 60, color: "#3C71F7" },
-  { weight: 1, x: 13, y: 63, color: "#EE402E" },
-  { weight: 2.5, x: 10, y: 80, color: "#8891A4" },
-  { weight: 5, x: 15, y: 93, color: "#7B8495" },
-  { weight: 10, x: 20, y: 114, color: "#6F7887" },
-  { weight: 10, x: 20, y: 114, color: "#6F7887" },
-  { weight: 10, x: 20, y: 114, color: "#6F7887" },
+  { weight: 0.25, x: 8, y: 57, color: "#62D926", count: 1 },
+  { weight: 0.5, x: 9, y: 60, color: "#FFBF00", count: 1 },
+  { weight: 0.75, x: 10, y: 60, color: "#3C71F7", count: 1 },
+  { weight: 1, x: 13, y: 63, color: "#EE402E", count: 1 },
+  { weight: 2.5, x: 10, y: 80, color: "#8891A4", count: 1 },
+  { weight: 5, x: 15, y: 93, color: "#7B8495", count: 1 },
+  { weight: 10, x: 20, y: 114, color: "#6F7887", count: 3 },
 ];
 
 function numbdfined(value: string | undefined) {
@@ -119,7 +123,10 @@ export default function App() {
     () =>
       determineWeightSpace(
         handle,
-        validPlates.map((p) => p.weight)
+        // TODO: pass raw Plates and expand internally
+        validPlates.flatMap((p) =>
+          Array.from({ length: p.count }, () => p.weight)
+        )
       ),
     [handle, validPlates]
   );
@@ -203,7 +210,7 @@ export default function App() {
             <NumberInput id="handle" value={handle} onChange={setHandle} />
           </label>
           <label>
-            Pairs of plates (per dumbbell): weight / color / thickness /
+            Pairs of plates (per dumbbell): weight / count / color / thickness /
             diameter
           </label>
           {plates.map((plate, index) => (
@@ -221,6 +228,17 @@ export default function App() {
                 onBlur={() =>
                   setPlates((d) => {
                     d.sort((a, b) => +a.weight - +b.weight);
+                  })
+                }
+              />
+              <input
+                type="number"
+                step={1}
+                min={1}
+                value={plate.count}
+                onChange={(e) =>
+                  setPlates((d) => {
+                    d[index].count = +e.target.value;
                   })
                 }
               />
@@ -270,7 +288,9 @@ export default function App() {
             type="button"
             onClick={() =>
               setPlates((draft) => {
-                draft.push(plates[plates.length - 1] || "5");
+                draft.push(
+                  PLATES_DEFAULT[plates.length] ?? plates[plates.length - 1]
+                );
               })
             }
           >
