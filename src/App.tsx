@@ -272,16 +272,6 @@ export default function App() {
                   })
                 }
               />
-              <button
-                type="button"
-                onClick={() =>
-                  setPlates((draft) => {
-                    draft.splice(index, 1);
-                  })
-                }
-              >
-                Remove
-              </button>
             </fieldset>
           ))}
           
