@@ -113,7 +113,7 @@ export default function App() {
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
   const [plates, setPlates] = useImmer<readonly Plate[]>(PLATES_DEFAULT);
   const validPlates = useMemo(() => {
-    const filtered = plates.slice();
+    const filtered = plates.filter(p => p.count * p.weight);
     filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
   }, [plates]);
@@ -284,18 +284,7 @@ export default function App() {
               </button>
             </fieldset>
           ))}
-          <button
-            type="button"
-            onClick={() =>
-              setPlates((draft) => {
-                draft.push(
-                  PLATES_DEFAULT[plates.length] ?? plates[plates.length - 1]
-                );
-              })
-            }
-          >
-            Add Plate
-          </button>
+          
         </form>
       </details>
       <details>
