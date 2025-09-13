@@ -113,7 +113,7 @@ export default function App() {
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
   const [plates, setPlates] = useImmer<readonly Plate[]>(PLATES_DEFAULT);
   const validPlates = useMemo(() => {
-    const filtered = plates.filter(p => p.count * p.weight);
+    const filtered = plates.filter((p) => p.count * p.weight);
     filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
   }, [plates]);
@@ -209,12 +209,18 @@ export default function App() {
             Handle + collars
             <NumberInput id="handle" value={handle} onChange={setHandle} />
           </label>
-          <label>
-            Pairs of plates (per dumbbell): weight / count / color / thickness /
-            diameter
-          </label>
+          <label>Pairs of plates (per dumbbell): color / weight / count</label>
           {plates.map((plate, index) => (
             <fieldset role="group" key={index}>
+              <input
+                type="color"
+                value={plate.color}
+                onChange={(e) =>
+                  setPlates((d) => {
+                    d[index].color = e.target.value;
+                  })
+                }
+              />
               <input
                 type="number"
                 step={0.25}
@@ -242,39 +248,29 @@ export default function App() {
                   })
                 }
               />
-              <input
-                type="color"
-                value={plate.color}
-                onChange={(e) =>
+              <button
+                type="button"
+                disabled={plate.count <= 0}
+                onClick={() =>
                   setPlates((d) => {
-                    d[index].color = e.target.value;
+                    d[index].count -= 1;
                   })
                 }
-              />
-              <input
-                type="number"
-                step={1}
-                value={plate.x}
-                onChange={(e) => {
+              >
+                -
+              </button>
+              <button
+                type="button"
+                onClick={() =>
                   setPlates((d) => {
-                    d[index].x = +e.target.value;
-                  });
-                }}
-              />
-              <input
-                type="number"
-                step={1}
-                max={120}
-                value={plate.y}
-                onChange={(e) =>
-                  setPlates((d) => {
-                    d[index].y = +e.target.value;
+                    d[index].count += 1;
                   })
                 }
-              />
+              >
+                +
+              </button>
             </fieldset>
           ))}
-          
         </form>
       </details>
       <details>
