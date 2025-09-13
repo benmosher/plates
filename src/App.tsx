@@ -112,9 +112,12 @@ function Handle() {
 export default function App() {
   const [target, setTarget] = useState<number | undefined>(47.5);
   const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
-  const [plates, setPlates] = useImmer<readonly Plate[]>(PLATES_DEFAULT);
-  const validPlates = useMemo(() => {
-    const filtered = plates.filter((p) => p.count * p.weight);
+  const [plates, setPlates] =
+    useImmer<readonly Partial<Plate>[]>(PLATES_DEFAULT);
+  const validPlates = useMemo<readonly Plate[]>(() => {
+    const filtered = plates.filter(
+      (p) => p.count && p.weight && p.color && p.x && p.y
+    ) as Plate[];
     filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
   }, [plates]);
@@ -235,16 +238,16 @@ export default function App() {
                 value={plate.count}
                 onChange={(e) =>
                   setPlates((d) => {
-                    d[index].count = +e.target.value;
+                    d[index].count = numbdfined(e.target.value);
                   })
                 }
               />
               <button
                 type="button"
-                disabled={plate.count <= 0}
+                disabled={!plate.count}
                 onClick={() =>
                   setPlates((d) => {
-                    d[index].count -= 1;
+                    d[index].count! -= 1;
                   })
                 }
               >
@@ -254,7 +257,7 @@ export default function App() {
                 type="button"
                 onClick={() =>
                   setPlates((d) => {
-                    d[index].count += 1;
+                    d[index].count = (d[index].count ?? 0) + 1;
                   })
                 }
               >
