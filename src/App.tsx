@@ -178,8 +178,8 @@ export default function App() {
             </option>
           ))}
         </datalist>
-        <label>
-          Input work weight:
+        <fieldset>
+          <legend>Input work weight:</legend>
           <input
             id="target-number"
             type="number"
@@ -190,29 +190,35 @@ export default function App() {
             onChange={onWeightChange}
             aria-invalid={!validTarget}
           />
-          <input
-            id="target-range"
-            type="range"
-            list="target-options"
-            min={weightMin}
-            max={weightMax}
-            step={weightStep}
-            value={target}
-            onChange={onWeightChange}
-          />
-        </label>
+          <label>
+            ...or use slider:
+            <input
+              id="target-range"
+              type="range"
+              list="target-options"
+              min={weightMin}
+              max={weightMax}
+              step={weightStep}
+              value={target}
+              onChange={onWeightChange}
+            />
+          </label>
+        </fieldset>
       </form>
 
       <details>
-        <summary>Available weights</summary>
+        <summary>Weights</summary>
         <form>
           <label>
             Handle + collars
             <NumberInput id="handle" value={handle} onChange={setHandle} />
           </label>
-          <label>Pairs of plates (per dumbbell): color / weight / count</label>
+          <label>
+            <h3>Pairs of plates (per dumbbell)</h3>
+          </label>
           {plates.map((plate, index) => (
             <fieldset role="group" key={index}>
+              <legend>{plate.weight}</legend>
               <input
                 type="color"
                 value={plate.color}
@@ -224,24 +230,8 @@ export default function App() {
               />
               <input
                 type="number"
-                step={0.25}
-                min={0}
-                value={plate.weight}
-                onChange={(e) =>
-                  setPlates((d) => {
-                    d[index].weight = +e.target.value;
-                  })
-                }
-                onBlur={() =>
-                  setPlates((d) => {
-                    d.sort((a, b) => +a.weight - +b.weight);
-                  })
-                }
-              />
-              <input
-                type="number"
                 step={1}
-                min={1}
+                min={0}
                 value={plate.count}
                 onChange={(e) =>
                   setPlates((d) => {
