@@ -15,6 +15,7 @@ const PLATES_DEFAULT: readonly Plate[] = [
   { weight: 0.5, x: 9, y: 60, color: "#FFBF00", count: 1 },
   { weight: 0.75, x: 10, y: 60, color: "#3C71F7", count: 1 },
   { weight: 1, x: 13, y: 63, color: "#EE402E", count: 1 },
+  { weight: 1.25, x: 10, y: 63, color: "#6F7887", count: 0 },
   { weight: 2.5, x: 10, y: 80, color: "#8891A4", count: 1 },
   { weight: 5, x: 15, y: 93, color: "#7B8495", count: 1 },
   { weight: 10, x: 20, y: 114, color: "#6F7887", count: 3 },
