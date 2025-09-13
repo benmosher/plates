@@ -221,7 +221,7 @@ export default function App() {
           </label>
           {plates.map((plate, index) => (
             <fieldset role="group" key={index}>
-              <legend>{plate.weight}</legend>
+              <input type="number" value={plate.weight} readOnly />
               <input
                 type="color"
                 value={plate.color}
