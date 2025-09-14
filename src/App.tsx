@@ -1,6 +1,7 @@
-import { determinePlates, determineWeightSpace } from "./plate-math";
+import { determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
 import React, { useCallback, useMemo, useState } from "react";
+import { wasm_determine_plates } from "./rusty/rusty.js";
 
 const HANDLE_DEFAULT = 12.5;
 type Plate = {
@@ -138,7 +139,11 @@ export default function App() {
   const weightMax = possibleWeights
     ? possibleWeights[possibleWeights.length - 1]
     : undefined;
-  const determinedPlates = determinePlates(target, handle, validPlates);
+
+  const determinedPlates: readonly Plate[] = Array.from(
+    wasm_determine_plates(target, handle, validPlates),
+    (w: number) => validPlates.find((p) => p.weight === w)!
+  );
   const validTarget = possibleWeights.includes(target ?? -1);
 
   const onWeightChange = useCallback(
