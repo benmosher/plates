@@ -18,11 +18,11 @@ const PLATES_DEFAULT: readonly Plate[] = [
   { weight: 2.5, x: 10, y: 80, color: "#8891A4", count: 1 },
   { weight: 5, x: 15, y: 93, color: "#7B8495", count: 1 },
   { weight: 10, x: 20, y: 114, color: "#6F7887", count: 3 },
-  { weight: 15, x: 30, y: 225, color: "#191C20", count: 1 },
-  { weight: 25, x: 41, y: 225, color: "#62D926", count: 1 },
-  { weight: 35, x: 53, y: 225, color: "#FFBF00", count: 0 },
-  { weight: 45, x: 69, y: 225, color: "#3C71F7", count: 3 },
-  { weight: 55, x: 72, y: 225, color: "#EE402E", count: 0 },
+  { weight: 15, x: 15, y: 225, color: "#191C20", count: 1 },
+  { weight: 25, x: 20, y: 225, color: "#62D926", count: 1 },
+  { weight: 35, x: 27, y: 225, color: "#FFBF00", count: 0 },
+  { weight: 45, x: 35, y: 225, color: "#3C71F7", count: 3 },
+  { weight: 55, x: 37, y: 225, color: "#EE402E", count: 0 },
 ];
 
 type Bar = {
