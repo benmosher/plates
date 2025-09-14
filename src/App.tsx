@@ -2,7 +2,6 @@ import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
 import React, { useCallback, useMemo, useState } from "react";
 
-const HANDLE_DEFAULT = 12.5;
 type Plate = {
   weight: number;
   x: number;
@@ -19,6 +18,11 @@ const PLATES_DEFAULT: readonly Plate[] = [
   { weight: 2.5, x: 10, y: 80, color: "#8891A4", count: 1 },
   { weight: 5, x: 15, y: 93, color: "#7B8495", count: 1 },
   { weight: 10, x: 20, y: 114, color: "#6F7887", count: 3 },
+  { weight: 15, x: 30, y: 225, color: "#191C20", count: 1 },
+  { weight: 25, x: 41, y: 225, color: "#62D926", count: 1 },
+  { weight: 35, x: 53, y: 225, color: "#FFBF00", count: 0 },
+  { weight: 45, x: 69, y: 225, color: "#3C71F7", count: 3 },
+  { weight: 55, x: 72, y: 225, color: "#EE402E", count: 0 },
 ];
 
 type Bar = {
@@ -130,11 +134,18 @@ export default function App() {
 
   const validPlates = useMemo<readonly Plate[]>(() => {
     const filtered = plates.filter(
-      (p) => p.count && p.weight && p.color && p.x && p.y
+      (p) =>
+        p.count &&
+        p.weight &&
+        p.color &&
+        p.x &&
+        p.y &&
+        // discard plates above the bar's threshold
+        (!selectedBar.plateThreshold || p.weight <= selectedBar.plateThreshold)
     ) as Plate[];
     filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
-  }, [plates]);
+  }, [plates, selectedBar]);
 
   const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
   const possibleWeights = useMemo(
@@ -166,7 +177,7 @@ export default function App() {
     <>
       <section
         style={{
-          height: 140,
+          height: Math.max(...validPlates.map((p) => p.y)) + 20,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
