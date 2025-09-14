@@ -83,6 +83,7 @@ function Nubbin() {
         background: HANDLE_COLOR,
         border: "1px solid",
         borderRadius: 2,
+        flexShrink: 0,
       }}
     />
   );
@@ -97,6 +98,7 @@ function Handle() {
           border: "1px solid",
           borderRadius: 4,
           maxWidth: "95%",
+          flexShrink: 0.3,
           width: 320,
           height: 18,
           margin: "0 -120px",
@@ -221,11 +223,12 @@ export default function App() {
         <summary>Weights</summary>
         <form>
           <label>
-            Handle + collars
+            <h5>Bar/handle</h5>
             <NumberInput id="handle" value={handle} onChange={setHandle} />
+            <small>(include collars)</small>
           </label>
           <label>
-            <h3>Pairs of plates (per dumbbell)</h3>
+            <h5>Plates (pairs)</h5>
           </label>
           {plates.map((plate, index) => (
             <fieldset role="group" key={index}>
