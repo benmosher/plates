@@ -31,9 +31,12 @@ type Bar = {
 
   barLength: number;
   handleWidth: number;
+  sliderMinStep?: number;
 
   /** the heaviest plate to put on this */
   plateThreshold?: number;
+
+  maxLoad?: number;
 };
 
 const BARS: readonly Bar[] = [
@@ -44,14 +47,20 @@ const BARS: readonly Bar[] = [
     barLength: 320,
     handleWidth: 80,
   },
-  { name: "Olympic barbell", weight: 45, barLength: 500, handleWidth: 200 },
+  {
+    name: "Olympic barbell",
+    weight: 45,
+    barLength: 500,
+    handleWidth: 200,
+    sliderMinStep: 5,
+  },
   { name: "Junior barbell", weight: 22.5, barLength: 400, handleWidth: 120 },
   {
     name: "Technique bar",
     weight: 5,
-    plateThreshold: 25,
+    maxLoad: 55, // including bar
     barLength: 300,
-    handleWidth: 100,
+    handleWidth: 140,
   },
 ];
 
@@ -110,7 +119,7 @@ function Handle({
           border: "1px solid",
           borderRadius: 4,
           maxWidth: "95%",
-          flexShrink: 0.3,
+          flexShrink: 0.1,
           width: barLength,
           height: 18,
           margin: `0 -${(barLength - handleWidth) / 2}px`,
@@ -129,8 +138,8 @@ export default function App() {
   const [plates, setPlates] =
     useImmer<readonly Partial<Plate>[]>(PLATES_DEFAULT);
 
-  const selectedBar = BARS[barIndex];
-  const handle = selectedBar.weight;
+  const bar = BARS[barIndex];
+  const handle = bar.weight;
 
   const validPlates = useMemo<readonly Plate[]>(() => {
     const filtered = plates.filter(
@@ -141,24 +150,27 @@ export default function App() {
         p.x &&
         p.y &&
         // discard plates above the bar's threshold
-        (!selectedBar.plateThreshold || p.weight <= selectedBar.plateThreshold)
+        (!bar.plateThreshold || p.weight <= bar.plateThreshold)
     ) as Plate[];
     filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
-  }, [plates, selectedBar]);
+  }, [plates, bar]);
 
   const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
-  const possibleWeights = useMemo(
-    () =>
-      determineWeightSpace(
-        handle,
-        // TODO: pass raw Plates and expand internally
-        validPlates.flatMap((p) =>
-          Array.from({ length: p.count }, () => p.weight)
-        )
-      ),
-    [handle, validPlates]
-  );
+  const possibleWeights = useMemo(() => {
+    let weights = determineWeightSpace(
+      handle,
+      // TODO: pass raw Plates and expand internally
+      validPlates.flatMap((p) =>
+        Array.from({ length: p.count }, () => p.weight)
+      )
+    );
+    const { maxLoad } = bar;
+    if (maxLoad != null && weights[weights.length - 1] > maxLoad) {
+      weights = weights.filter((w) => w <= maxLoad);
+    }
+    return weights;
+  }, [handle, validPlates]);
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
     ? possibleWeights[possibleWeights.length - 1]
@@ -191,7 +203,7 @@ export default function App() {
               <DisplayPlate key={`left-${plate.weight}-${j}`} {...plate} />
             ))
           )}
-        <Handle {...selectedBar} />
+        <Handle {...bar} />
         {determinedPlates.flatMap((plate) =>
           Array.from({ length: plate.count }, (_, j) => (
             <DisplayPlate key={`right-${plate.weight}-${j}`} {...plate} />
@@ -227,17 +239,17 @@ export default function App() {
             aria-invalid={!validTarget}
           />
           <label>
-            ...or use slider:
             <input
               id="target-range"
               type="range"
               list="target-options"
               min={weightMin}
               max={weightMax}
-              step={weightStep}
+              step={bar.sliderMinStep ?? weightStep}
               value={target}
               onChange={onWeightChange}
             />
+            <small>use slider for quick changes!</small>
           </label>
         </fieldset>
       </form>
@@ -267,7 +279,7 @@ export default function App() {
                   <input
                     type="number"
                     readOnly
-                    placeholder="max plate"
+                    placeholder="(no max plate)"
                     value={bar.plateThreshold}
                   />
                 </fieldset>
