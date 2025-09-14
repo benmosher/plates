@@ -21,36 +21,38 @@ const PLATES_DEFAULT: readonly Plate[] = [
   { weight: 10, x: 20, y: 114, color: "#6F7887", count: 3 },
 ];
 
+type Bar = {
+  name: string;
+  weight: number;
+
+  barLength: number;
+  handleWidth: number;
+
+  /** the heaviest plate to put on this */
+  plateThreshold?: number;
+};
+
+const BARS: readonly Bar[] = [
+  {
+    name: "Olympic dumbbell",
+    weight: 12.5,
+    plateThreshold: 10,
+    barLength: 320,
+    handleWidth: 80,
+  },
+  { name: "Olympic barbell", weight: 45, barLength: 500, handleWidth: 200 },
+  { name: "Junior barbell", weight: 22.5, barLength: 400, handleWidth: 120 },
+  {
+    name: "Technique bar",
+    weight: 5,
+    plateThreshold: 25,
+    barLength: 300,
+    handleWidth: 100,
+  },
+];
+
 function numbdfined(value: string | undefined) {
   return value ? +value : undefined;
-}
-
-function NumberInput({
-  id,
-  value,
-  onChange,
-  onBlur,
-  step,
-  min,
-}: {
-  id?: string;
-  value?: number | undefined;
-  onChange: (value: number | undefined) => void;
-  onBlur?: () => void;
-  step?: number;
-  min?: number;
-}) {
-  return (
-    <input
-      id={id}
-      type="number"
-      value={value}
-      min={min}
-      onChange={(e) => onChange(numbdfined(e.target.value))}
-      onBlur={onBlur}
-      step={step}
-    />
-  );
 }
 
 function DisplayPlate({ x, y, color }: Pick<Plate, "x" | "y" | "color">) {
@@ -89,7 +91,13 @@ function Nubbin() {
   );
 }
 
-function Handle() {
+function Handle({
+  barLength,
+  handleWidth,
+}: {
+  barLength: number;
+  handleWidth: number;
+}) {
   return (
     <>
       <Nubbin />
@@ -99,9 +107,9 @@ function Handle() {
           borderRadius: 4,
           maxWidth: "95%",
           flexShrink: 0.3,
-          width: 320,
+          width: barLength,
           height: 18,
-          margin: "0 -120px",
+          margin: `0 -${(barLength - handleWidth) / 2}px`,
           background: HANDLE_COLOR,
           zIndex: -2,
         }}
@@ -112,10 +120,14 @@ function Handle() {
 }
 
 export default function App() {
+  const [barIndex, setBarIndex] = useState(0);
   const [target, setTarget] = useState<number | undefined>(47.5);
-  const [handle, setHandle] = useState<number | undefined>(HANDLE_DEFAULT);
   const [plates, setPlates] =
     useImmer<readonly Partial<Plate>[]>(PLATES_DEFAULT);
+
+  const selectedBar = BARS[barIndex];
+  const handle = selectedBar.weight;
+
   const validPlates = useMemo<readonly Plate[]>(() => {
     const filtered = plates.filter(
       (p) => p.count && p.weight && p.color && p.x && p.y
@@ -168,7 +180,7 @@ export default function App() {
               <DisplayPlate key={`left-${plate.weight}-${j}`} {...plate} />
             ))
           )}
-        <Handle />
+        <Handle {...selectedBar} />
         {determinedPlates.flatMap((plate) =>
           Array.from({ length: plate.count }, (_, j) => (
             <DisplayPlate key={`right-${plate.weight}-${j}`} {...plate} />
@@ -220,16 +232,42 @@ export default function App() {
       </form>
 
       <details>
-        <summary>Weights</summary>
+        <summary>Bar/handle</summary>
         <form>
-          <label>
-            <h5>Bar/handle</h5>
-            <NumberInput id="handle" value={handle} onChange={setHandle} />
-            <small>(include collars)</small>
-          </label>
-          <label>
-            <h5>Plates (pairs)</h5>
-          </label>
+          {BARS.map((bar, idx) => (
+            <fieldset key={idx}>
+              <label>
+                <input
+                  type="radio"
+                  name="bar"
+                  checked={barIndex === idx}
+                  onChange={() => setBarIndex(idx)}
+                />
+                {bar.name}
+              </label>
+              {barIndex == idx && (
+                <fieldset role="group">
+                  <input
+                    type="number"
+                    readOnly
+                    placeholder="bar weight"
+                    value={bar.weight}
+                  />
+                  <input
+                    type="number"
+                    readOnly
+                    placeholder="max plate"
+                    value={bar.plateThreshold}
+                  />
+                </fieldset>
+              )}
+            </fieldset>
+          ))}
+        </form>
+      </details>
+      <details>
+        <summary>Plates (pairs)</summary>
+        <form>
           {plates.map((plate, index) => (
             <fieldset role="group" key={index}>
               <input type="number" value={plate.weight} readOnly />
