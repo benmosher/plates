@@ -159,18 +159,26 @@ export default function App() {
         }}
       >
         <Nubbin />
-        {determinedPlates.toReversed().map((plate, i) => (
-          <DisplayPlate key={-i - 1} {...plate} />
-        ))}
+        {determinedPlates
+          .toReversed()
+          .flatMap((plate) =>
+            Array.from({ length: plate.count }, (_, j) => (
+              <DisplayPlate key={`left-${plate.weight}-${j}`} {...plate} />
+            ))
+          )}
         <Handle />
-        {determinedPlates.map((plate, i) => (
-          <DisplayPlate key={i} {...plate} />
-        ))}
+        {determinedPlates.flatMap((plate) =>
+          Array.from({ length: plate.count }, (_, j) => (
+            <DisplayPlate key={`right-${plate.weight}-${j}`} {...plate} />
+          ))
+        )}
         <Nubbin />
       </section>
       <h3>
         {validTarget
-          ? determinedPlates.map((p) => p.weight).join(", ") || "(empty)"
+          ? determinedPlates
+              .map((p) => (p.count > 1 ? `${p.weight}x${p.count}` : p.weight))
+              .join(", ") || "(empty)"
           : "No valid plate combination!"}
       </h3>
       <form>

@@ -1,6 +1,10 @@
 import { expect, describe, test } from "vitest";
 
-import { determinePlateCombos, determineWeightSpace } from "./plate-math";
+import {
+  determinePlateCombos,
+  determinePlates,
+  determineWeightSpace,
+} from "./plate-math";
 
 /* start and end are inclusive */
 function range(start: number, end: number, step = 1) {
@@ -9,6 +13,20 @@ function range(start: number, end: number, step = 1) {
     (_, i) => start + i * step
   );
 }
+
+describe("plates needed", () => {
+  test("returns multiples", () => {
+    const plates = [
+      { weight: 2.5, count: 4 },
+      { weight: 5, count: 4 },
+      { weight: 10, count: 4 },
+    ];
+    expect(determinePlates(62.5, 12.5, plates)).toEqual([
+      { weight: 10, count: 2 },
+      { weight: 5, count: 1 },
+    ]);
+  });
+});
 
 describe("plate math", () => {
   test("basic cases", () => {

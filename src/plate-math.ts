@@ -8,24 +8,26 @@ export function determinePlates<
   // don't bother
   if (!target || !handle || !plates.length) return [];
 
-  const platesNeeded: Plate[] = [];
+  const platesUsed: Plate[] = [];
   let weightLeft = (target - handle) / 2;
 
-  let i = plates.length - 1;
-  let { weight, count } = plates[i];
-  while (weightLeft > 0) {
-    if (weight <= weightLeft) {
-      platesNeeded.push(plates[i]);
-      weightLeft -= weight;
-    }
-    // move to next plate if none left
-    if (--count <= 0) {
-      if (--i < 0) break;
-      ({ weight, count } = plates[i]);
+  for (let i = plates.length - 1; weightLeft > 0 && i >= 0; i--) {
+    const plate = plates[i];
+    // use as many of this plate as possible
+    let countUsed = Math.min(
+      plate.count,
+      Math.floor(weightLeft / plate.weight)
+    );
+
+    // if none used, it was too big - move to next plate
+    if (countUsed) {
+      // push a version of the plate with the count used
+      platesUsed.push({ ...plate, count: countUsed });
+      weightLeft -= countUsed * plate.weight;
     }
   }
 
-  return platesNeeded;
+  return platesUsed;
 }
 
 /**
