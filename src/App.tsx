@@ -179,6 +179,11 @@ function useParams(): [
             state = state(readParams(params));
           }
           for (const [key, value] of Object.entries(state)) {
+            // clear default from URL
+            if (value === DEFAULT_STATE[key as keyof UrlState]) {
+              params.delete(key);
+              continue;
+            }
             if (value != null) {
               params.set(key, value.toString());
             }
