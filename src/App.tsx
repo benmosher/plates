@@ -1,6 +1,7 @@
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
 import React, { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 
 type Plate = {
   weight: number;
@@ -64,7 +65,7 @@ const BARS: readonly Bar[] = [
   },
 ];
 
-function numbdfined(value: string | undefined) {
+function numbdfined(value: string | null | undefined) {
   return value ? +value : undefined;
 }
 
@@ -132,9 +133,41 @@ function Handle({
   );
 }
 
+type UrlState = {
+  target?: number;
+  bar?: number;
+};
+
+function useParams() {
+  const [searchParams, setSearchParams] = useSearchParams({ target: "47.5" });
+  const updateState = useCallback(
+    (state: UrlState, options: { replace?: boolean }) => {
+      setSearchParams(
+        (params) => {
+          for (const [key, value] of Object.entries(state)) {
+            if (value != null) {
+              params.set(key, value.toString());
+            }
+          }
+          return params;
+        },
+        { replace: options.replace ?? false }
+      );
+    },
+    [setSearchParams]
+  );
+
+  return [
+    {
+      target: numbdfined(searchParams.get("target")),
+    },
+    updateState,
+  ] as const;
+}
+
 export default function App() {
   const [barIndex, setBarIndex] = useState(0);
-  const [target, setTarget] = useState<number | undefined>(47.5);
+  const [{ target }, setState] = useParams();
   const [plates, setPlates] =
     useImmer<readonly Partial<Plate>[]>(PLATES_DEFAULT);
 
@@ -177,13 +210,6 @@ export default function App() {
     : undefined;
   const determinedPlates = determinePlates(target, handle, validPlates);
   const validTarget = possibleWeights.includes(target ?? -1);
-
-  const onWeightChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setTarget(numbdfined(e.target.value));
-    },
-    [setTarget]
-  );
 
   return (
     <>
@@ -235,7 +261,12 @@ export default function App() {
             min={weightMin}
             max={weightMax}
             step={weightStep}
-            onChange={onWeightChange}
+            onChange={(e) =>
+              setState(
+                { target: numbdfined(e.target.value) },
+                { replace: true }
+              )
+            }
             aria-invalid={!validTarget}
           />
           <label>
@@ -247,7 +278,12 @@ export default function App() {
               max={weightMax}
               step={bar.sliderMinStep ?? weightStep}
               value={target}
-              onChange={onWeightChange}
+              onChange={(e) =>
+                setState(
+                  { target: numbdfined(e.target.value) },
+                  { replace: true } // don't pollute history with slider changes
+                )
+              }
             />
             <small>use slider for quick changes!</small>
           </label>
