@@ -1,6 +1,6 @@
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router";
 
 type Plate = {
@@ -134,16 +134,50 @@ function Handle({
 }
 
 type UrlState = {
-  target?: number;
-  bar?: number;
+  /** bar index */
+  bi: number;
+  /** target weight */
+  tw?: number;
+  /** bar weight (override) */
+  bw?: number;
 };
 
-function useParams() {
-  const [searchParams, setSearchParams] = useSearchParams({ target: "47.5" });
+const DEFAULT_STATE: UrlState = {
+  tw: 47.5,
+  bi: 0,
+};
+
+function readParams(params: URLSearchParams): UrlState {
+  return {
+    tw: numbdfined(params.get("tw")) ?? DEFAULT_STATE.tw,
+    bi: numbdfined(params.get("bi")) ?? DEFAULT_STATE.bi,
+    bw: numbdfined(params.get("bw")) ?? undefined,
+  };
+}
+
+function useParams(): [
+  UrlState,
+  (
+    state: UrlState | ((prev: UrlState) => UrlState),
+    options: { replace?: boolean }
+  ) => void
+] {
+  const [searchParams, setSearchParams] = useSearchParams(
+    Object.fromEntries(
+      Object.entries(DEFAULT_STATE).map(([k, v]) => [k, v?.toString() ?? ""])
+    )
+  );
+  const currentParams = useMemo(() => readParams(searchParams), [searchParams]);
   const updateState = useCallback(
-    (state: UrlState, options: { replace?: boolean }) => {
+    (
+      state: UrlState | ((prev: UrlState) => UrlState),
+      options: { replace?: boolean }
+    ) => {
       setSearchParams(
         (params) => {
+          if (typeof state === "function") {
+            state = state(readParams(params));
+          }
           for (const [key, value] of Object.entries(state)) {
             if (value != null) {
               params.set(key, value.toString());
@@ -157,17 +191,11 @@ function useParams() {
     [setSearchParams]
   );
 
-  return [
-    {
-      target: numbdfined(searchParams.get("target")),
-    },
-    updateState,
-  ] as const;
+  return [currentParams, updateState] as const;
 }
 
 export default function App() {
-  const [barIndex, setBarIndex] = useState(0);
-  const [{ target }, setState] = useParams();
+  const [{ tw: target, bi: barIndex }, setState] = useParams();
   const [plates, setPlates] =
     useImmer<readonly Partial<Plate>[]>(PLATES_DEFAULT);
 
@@ -263,7 +291,7 @@ export default function App() {
             step={weightStep}
             onChange={(e) =>
               setState(
-                { target: numbdfined(e.target.value) },
+                (prev) => ({ ...prev, tw: numbdfined(e.target.value) }),
                 { replace: true }
               )
             }
@@ -280,7 +308,7 @@ export default function App() {
               value={target}
               onChange={(e) =>
                 setState(
-                  { target: numbdfined(e.target.value) },
+                  (prev) => ({ ...prev, tw: numbdfined(e.target.value) }),
                   { replace: true } // don't pollute history with slider changes
                 )
               }
@@ -300,7 +328,11 @@ export default function App() {
                   type="radio"
                   name="bar"
                   checked={barIndex === idx}
-                  onChange={() => setBarIndex(idx)}
+                  onChange={() =>
+                    setState((prev) => ({ ...prev, bi: idx }), {
+                      replace: false,
+                    })
+                  }
                 />
                 {bar.name}
               </label>
