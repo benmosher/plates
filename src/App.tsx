@@ -1,7 +1,6 @@
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
-import React, { useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 type Plate = {
   weight: number;
@@ -26,12 +25,15 @@ const PLATES_DEFAULT: readonly Plate[] = [
   { weight: 55, x: 37, y: 225, color: "#EE402E", count: 0 },
 ];
 
-type Bar = {
-  name: string;
-  weight: number;
-
+type BarDisplay = {
   barLength: number;
   handleWidth: number;
+};
+
+/** special variables for different bars */
+type SpecialtyBar = BarDisplay & {
+  name: string;
+  weight: number;
   sliderMinStep?: number;
 
   /** the heaviest plate to put on this */
@@ -40,29 +42,42 @@ type Bar = {
   maxLoad?: number;
 };
 
-const BARS: readonly Bar[] = [
-  {
-    name: "Olympic dumbbell",
-    weight: 12.5,
-    plateThreshold: 10,
-    barLength: 320,
-    handleWidth: 80,
-  },
-  {
-    name: "Olympic barbell",
-    weight: 45,
-    barLength: 500,
-    handleWidth: 200,
-    sliderMinStep: 5,
-  },
-  { name: "Junior barbell", weight: 22.5, barLength: 400, handleWidth: 120 },
-  {
-    name: "Technique bar",
-    weight: 5,
-    maxLoad: 55, // including bar
-    barLength: 300,
-    handleWidth: 140,
-  },
+// the first number is the highest bar weight for that config
+const BARS: [number, SpecialtyBar][] = [
+  [
+    5,
+    {
+      name: "Technique bar",
+      weight: 5,
+      maxLoad: 55, // including bar
+      barLength: 300,
+      handleWidth: 140,
+    },
+  ],
+  [
+    15,
+    {
+      name: "Olympic dumbbell",
+      weight: 12.5,
+      plateThreshold: 10,
+      barLength: 320,
+      handleWidth: 80,
+    },
+  ],
+  [
+    34.9,
+    { name: "Junior barbell", weight: 22.5, barLength: 400, handleWidth: 120 },
+  ],
+  [
+    Infinity,
+    {
+      name: "Olympic barbell",
+      weight: 45,
+      barLength: 500,
+      handleWidth: 200,
+      sliderMinStep: 5,
+    },
+  ],
 ];
 
 function numbdfined(value: string | null | undefined) {
@@ -133,79 +148,73 @@ function Handle({
   );
 }
 
-type UrlState = {
-  /** bar index */
-  bi: number;
+type State = {
   /** target weight */
-  tw?: number;
-  /** bar weight (override) */
-  bw?: number;
+  target?: number;
+  /** bar weight */
+  barWeight?: number;
 };
 
-const DEFAULT_STATE: UrlState = {
-  tw: 47.5,
-  bi: 0,
-};
-
-function readParams(params: URLSearchParams): UrlState {
+function getUrlState(): State {
+  // use hash as search
+  const params = new URLSearchParams("?" + window.location.hash.slice(1));
   return {
-    tw: numbdfined(params.get("tw")) ?? DEFAULT_STATE.tw,
-    bi: numbdfined(params.get("bi")) ?? DEFAULT_STATE.bi,
-    bw: numbdfined(params.get("bw")) ?? undefined,
+    target: numbdfined(params.get("tw")) ?? 47.5,
+    barWeight: numbdfined(params.get("bw")) ?? 12.5,
   };
 }
 
-function useParams(): [
-  UrlState,
-  (
-    state: UrlState | ((prev: UrlState) => UrlState),
-    options: { replace?: boolean }
-  ) => void
-] {
-  const [searchParams, setSearchParams] = useSearchParams(
-    Object.fromEntries(
-      Object.entries(DEFAULT_STATE).map(([k, v]) => [k, v?.toString() ?? ""])
-    )
-  );
-  const currentParams = useMemo(() => readParams(searchParams), [searchParams]);
-  const updateState = useCallback(
-    (
-      state: UrlState | ((prev: UrlState) => UrlState),
-      options: { replace?: boolean }
-    ) => {
-      setSearchParams(
-        (params) => {
-          if (typeof state === "function") {
-            state = state(readParams(params));
-          }
-          for (const [key, value] of Object.entries(state)) {
-            // clear default from URL
-            if (value === DEFAULT_STATE[key as keyof UrlState]) {
-              params.delete(key);
-              continue;
-            }
-            if (value != null) {
-              params.set(key, value.toString());
-            }
-          }
-          return params;
-        },
-        { replace: options.replace ?? false }
-      );
-    },
-    [setSearchParams]
-  );
-
-  return [currentParams, updateState] as const;
-}
-
 export default function App() {
-  const [{ tw: target, bi: barIndex }, setState] = useParams();
+  const [state, setState] = useState<State>(getUrlState);
+  const { target, barWeight } = state;
+
+  const updateTarget = useCallback((v: number | undefined) => {
+    setState((s) => ({ ...s, target: v }));
+  }, []);
+  const updateBarWeight = useCallback((v: number | undefined) => {
+    setState((s) => ({ ...s, barWeight: v }));
+  }, []);
+
+  const saveURLState = () => {
+    const currentUrlState = getUrlState();
+    if (
+      currentUrlState.target === target &&
+      currentUrlState.barWeight === barWeight
+    )
+      return; // don't push a state if we're matching
+    history.pushState(null, "", `#tw=${target}&bw=${barWeight}`);
+  };
+
+  // slider does not have onBlur,
+  // so debounce all changes instead
+  useEffect(
+    function saveToUrlDebounced() {
+      const cancelHandle = setTimeout(saveURLState, 1000);
+      return () => clearTimeout(cancelHandle);
+    },
+    [target, barWeight]
+  );
+
+  useEffect(
+    function listenToPopState() {
+      const onPopState = () => {
+        setState(getUrlState());
+      };
+      window.addEventListener("popstate", onPopState);
+      return () => window.removeEventListener("popstate", onPopState);
+    },
+    [setState]
+  );
+
   const [plates, setPlates] =
     useImmer<readonly Partial<Plate>[]>(PLATES_DEFAULT);
 
-  const bar = BARS[barIndex];
-  const handle = bar.weight;
+  // find the closest matching bar config
+  const barIndex =
+    BARS.findIndex(([breakpoint]) => (barWeight ?? 0) <= breakpoint) ??
+    BARS.length - 1;
+
+  const bar = BARS[barIndex][1];
 
   const validPlates = useMemo<readonly Plate[]>(() => {
     const filtered = plates.filter(
@@ -225,7 +234,7 @@ export default function App() {
   const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
   const possibleWeights = useMemo(() => {
     let weights = determineWeightSpace(
-      handle,
+      barWeight,
       // TODO: pass raw Plates and expand internally
       validPlates.flatMap((p) =>
         Array.from({ length: p.count }, () => p.weight)
@@ -236,12 +245,12 @@ export default function App() {
       weights = weights.filter((w) => w <= maxLoad);
     }
     return weights;
-  }, [handle, validPlates]);
+  }, [barWeight, validPlates]);
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
     ? possibleWeights[possibleWeights.length - 1]
     : undefined;
-  const determinedPlates = determinePlates(target, handle, validPlates);
+  const determinedPlates = determinePlates(target, barWeight, validPlates);
   const validTarget = possibleWeights.includes(target ?? -1);
 
   return (
@@ -285,7 +294,7 @@ export default function App() {
             </option>
           ))}
         </datalist>
-        <fieldset>
+        <fieldset onBlur={saveURLState}>
           <legend>Input work weight:</legend>
           <input
             id="target-number"
@@ -294,12 +303,7 @@ export default function App() {
             min={weightMin}
             max={weightMax}
             step={weightStep}
-            onChange={(e) =>
-              setState(
-                (prev) => ({ ...prev, tw: numbdfined(e.target.value) }),
-                { replace: true }
-              )
-            }
+            onChange={(e) => updateTarget(numbdfined(e.target.value))}
             aria-invalid={!validTarget}
           />
           <label>
@@ -311,12 +315,7 @@ export default function App() {
               max={weightMax}
               step={bar.sliderMinStep ?? weightStep}
               value={target}
-              onChange={(e) =>
-                setState(
-                  (prev) => ({ ...prev, tw: numbdfined(e.target.value) }),
-                  { replace: true } // don't pollute history with slider changes
-                )
-              }
+              onChange={(e) => updateTarget(numbdfined(e.target.value))}
             />
             <small>use slider for quick changes!</small>
           </label>
@@ -326,39 +325,40 @@ export default function App() {
       <details>
         <summary>Bar/handle</summary>
         <form>
-          {BARS.map((bar, idx) => (
-            <fieldset key={idx}>
-              <label>
-                <input
-                  type="radio"
-                  name="bar"
-                  checked={barIndex === idx}
-                  onChange={() =>
-                    setState((prev) => ({ ...prev, bi: idx }), {
-                      replace: false,
-                    })
-                  }
-                />
-                {bar.name}
-              </label>
-              {barIndex == idx && (
-                <fieldset role="group">
+          <label>
+            Bar weight:
+            <input
+              type="number"
+              value={barWeight}
+              onChange={(e) => updateBarWeight(numbdfined(e.target.value))}
+            />
+          </label>
+          <fieldset>
+            <legend>Style:</legend>
+            {BARS.map(([, bar], idx) => (
+              <fieldset key={idx}>
+                <label>
                   <input
-                    type="number"
-                    readOnly
-                    placeholder="bar weight"
-                    value={bar.weight}
+                    type="radio"
+                    name="bar"
+                    checked={barIndex === idx}
+                    onChange={() => updateBarWeight(bar.weight)}
                   />
-                  <input
-                    type="number"
-                    readOnly
-                    placeholder="(no max plate)"
-                    value={bar.plateThreshold}
-                  />
-                </fieldset>
-              )}
-            </fieldset>
-          ))}
+                  {bar.name}
+                </label>
+                {barIndex == idx && (
+                  <fieldset role="group">
+                    <input
+                      type="number"
+                      readOnly
+                      placeholder="(no max plate)"
+                      value={bar.plateThreshold}
+                    />
+                  </fieldset>
+                )}
+              </fieldset>
+            ))}
+          </fieldset>
         </form>
       </details>
       <details>
