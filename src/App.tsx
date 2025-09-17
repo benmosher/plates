@@ -322,7 +322,7 @@ export default function App() {
         </fieldset>
       </form>
 
-      <details>
+      <details open>
         <summary>Bar/handle</summary>
         <form>
           <label>
