@@ -7,10 +7,8 @@
   "keywords": [],
   "main": "src/index.tsx",
   "dependencies": {
-    "immer": "^10.1.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "use-immer": "^0.11.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/react": "19.0.0",
