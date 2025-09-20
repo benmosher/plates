@@ -1,29 +1,6 @@
 import { determinePlates, determineWeightSpace } from "./plate-math";
-import { useImmer } from "use-immer";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-
-type Plate = {
-  weight: number;
-  x: number;
-  y: number;
-  color: string;
-  count: number;
-};
-const PLATES_DEFAULT: readonly Plate[] = [
-  { weight: 0.25, x: 8, y: 57, color: "#62D926", count: 1 },
-  { weight: 0.5, x: 9, y: 60, color: "#FFBF00", count: 1 },
-  { weight: 0.75, x: 10, y: 60, color: "#3C71F7", count: 1 },
-  { weight: 1, x: 13, y: 63, color: "#EE402E", count: 1 },
-  { weight: 1.25, x: 10, y: 63, color: "#6F7887", count: 0 },
-  { weight: 2.5, x: 10, y: 80, color: "#8891A4", count: 1 },
-  { weight: 5, x: 15, y: 93, color: "#7B8495", count: 1 },
-  { weight: 10, x: 20, y: 114, color: "#6F7887", count: 3 },
-  { weight: 15, x: 15, y: 225, color: "#191C20", count: 1 },
-  { weight: 25, x: 20, y: 225, color: "#62D926", count: 1 },
-  { weight: 35, x: 27, y: 225, color: "#FFBF00", count: 1 },
-  { weight: 45, x: 35, y: 225, color: "#3C71F7", count: 3 },
-  { weight: 55, x: 37, y: 225, color: "#EE402E", count: 0 },
-];
+import { useMassStorage, type Plate } from "./plate-db";
 
 type BarDisplay = {
   barLength: number;
@@ -84,12 +61,16 @@ function numbdfined(value: string | null | undefined) {
   return value ? +value : undefined;
 }
 
-function DisplayPlate({ x, y, color }: Pick<Plate, "x" | "y" | "color">) {
+function DisplayPlate({
+  thicknessMm,
+  diameterMm,
+  color,
+}: Pick<Plate, "thicknessMm" | "diameterMm" | "color">) {
   return (
     <div
       style={{
-        width: x,
-        height: y,
+        width: thicknessMm,
+        height: diameterMm,
         border: "1px solid",
         background: color,
         borderRadius: 8,
@@ -165,6 +146,8 @@ function getUrlState(): State {
 }
 
 export default function App() {
+  const { plates, putPlate } = useMassStorage();
+
   const [state, setState] = useState<State>(getUrlState);
   const { target, barWeight } = state;
 
@@ -206,9 +189,6 @@ export default function App() {
     [setState]
   );
 
-  const [plates, setPlates] =
-    useImmer<readonly Partial<Plate>[]>(PLATES_DEFAULT);
-
   // find the closest matching bar config
   const barIndex =
     BARS.findIndex(([breakpoint]) => (barWeight ?? 0) <= breakpoint) ??
@@ -221,9 +201,6 @@ export default function App() {
       (p) =>
         p.count &&
         p.weight &&
-        p.color &&
-        p.x &&
-        p.y &&
         // discard plates above the bar's threshold
         (!bar.plateThreshold || p.weight <= bar.plateThreshold)
     ) as Plate[];
@@ -257,7 +234,7 @@ export default function App() {
     <>
       <section
         style={{
-          height: Math.max(...validPlates.map((p) => p.y)) + 20,
+          height: Math.max(...validPlates.map((p) => p.diameterMm)) + 20,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -370,30 +347,23 @@ export default function App() {
               <input
                 type="color"
                 value={plate.color}
-                onChange={(e) =>
-                  setPlates((d) => {
-                    d[index].color = e.target.value;
-                  })
-                }
+                onChange={(e) => putPlate({ ...plate, color: e.target.value })}
               />
               <input
                 type="number"
                 step={1}
                 min={0}
                 value={plate.count}
-                onChange={(e) =>
-                  setPlates((d) => {
-                    d[index].count = numbdfined(e.target.value);
-                  })
-                }
+                onChange={(e) => {
+                  // todo: undefined plate count?
+                  putPlate({ ...plate, count: numbdfined(e.target.value) });
+                }}
               />
               <button
                 type="button"
                 disabled={!plate.count}
                 onClick={() =>
-                  setPlates((d) => {
-                    d[index].count! -= 1;
-                  })
+                  putPlate({ ...plate, count: (plate.count ?? 1) - 1 })
                 }
               >
                 -
@@ -401,9 +371,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() =>
-                  setPlates((d) => {
-                    d[index].count = (d[index].count ?? 0) + 1;
-                  })
+                  putPlate({ ...plate, count: (plate.count ?? 0) + 1 })
                 }
               >
                 +
