@@ -1,6 +1,6 @@
 // create a database
 
-import { use, useCallback, useMemo, useState } from "react";
+import { use, useMemo, useSyncExternalStore } from "react";
 
 export interface Plate {
   count?: number;
@@ -66,21 +66,22 @@ function initializeStore<T>(
   });
 }
 
-type Initialized = {
-  db: IDBDatabase;
-  plates: readonly Plate[];
-};
-
 /** Resolves when database is available and initialized */
-function initializeDatabase(): Promise<Initialized> {
+function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
-    // TODO: reject on error?
     const request = indexedDB.open("mass", 1);
 
     // capture the database
     request.onsuccess = function () {
-      initializeStore(this.result, "plates", INITIAL_PLATES).then((plates) => {
-        resolve({ db: this.result, plates });
+      db = this.result;
+
+      initializeStore(db, "plates", INITIAL_PLATES).then((plates) => {
+        // populate the in-memory map
+        for (const plate of plates) {
+          MAP_VIEW.set(plate.weight, plate);
+        }
+        FLAT_VIEW = _sortedPlateSnapshot();
+        resolve();
       }, reject);
     };
 
@@ -88,7 +89,6 @@ function initializeDatabase(): Promise<Initialized> {
     request.onupgradeneeded = function () {
       const db = this.result;
 
-      // TODO: handle errors?
       if (!db.objectStoreNames.contains("plates")) {
         db.createObjectStore("plates", { keyPath: "weight" });
       }
@@ -100,7 +100,53 @@ function initializeDatabase(): Promise<Initialized> {
   });
 }
 
-let dbPromise: Promise<Initialized> | null = null;
+let dbPromise: Promise<void> | null = null;
+let db: IDBDatabase | null = null;
+
+function putPlate(plate: Plate) {
+  if (db == null) {
+    throw new Error("database not initialized");
+  }
+
+  // update the in-memory map and view
+  MAP_VIEW.set(plate.weight, plate);
+  FLAT_VIEW = _sortedPlateSnapshot();
+
+  // notify subscribers
+  _subscriptions.forEach((cb) => cb());
+
+  // write to the database
+  const txn = db.transaction("plates", "readwrite");
+  const store = txn.objectStore("plates");
+  store.put(plate);
+  txn.commit();
+}
+
+/**
+ * This map holds the current state of the plates
+ * in memory, but is global so that multiple calls to
+ * useMassStorage() share the same state.
+ *
+ * This is necessary because IndexedDB does not provide
+ * change notifications.
+ */
+const MAP_VIEW = new Map<number, Plate>();
+let FLAT_VIEW: readonly Plate[] = [];
+
+/** callbacks to fire on updates */
+const _subscriptions = new Set<() => void>();
+function _subscribe(cb: () => void) {
+  _subscriptions.add(cb);
+  return () => _subscriptions.delete(cb);
+}
+function _getSnapshot(): readonly Plate[] {
+  return FLAT_VIEW;
+}
+function _sortedPlateSnapshot(): readonly Plate[] {
+  const plates = Array.from(MAP_VIEW.values());
+  plates.sort((a, b) => a.weight - b.weight);
+  return plates;
+}
 
 interface MassStorage {
   readonly plates: readonly Plate[];
@@ -113,34 +159,16 @@ export function useMassStorage(): MassStorage {
     dbPromise = initializeDatabase();
   }
 
-  const { db, plates: initialDbPlates } = use(dbPromise);
+  // suspend while db is initializing
+  use(dbPromise);
 
-  // db does not send change events, so we must manage the plate state ourselves
-  // todo: useSyncExternalStore?
-  const [plateMap, updatePlateMap] = useState(
-    () => new Map<number, Plate>(initialDbPlates.map((p) => [p.weight, p]))
-  );
-
-  const putPlate = useCallback(
-    (plate: Plate) => {
-      updatePlateMap((m) => {
-        return new Map(m).set(plate.weight, plate);
-      });
-      const txn = db.transaction("plates", "readwrite");
-      const store = txn.objectStore("plates");
-      store.put(plate);
-      txn.commit();
-    },
-    [db]
-  );
+  const plates = useSyncExternalStore(_subscribe, _getSnapshot);
 
   return useMemo(
     () => ({
-      plates: Array.from(plateMap.values()).toSorted(
-        (a, b) => a.weight - b.weight
-      ),
+      plates,
       putPlate,
     }),
-    [plateMap, putPlate]
+    [plates, putPlate]
   );
 }
