@@ -146,10 +146,8 @@ function getUrlState(): State {
 }
 
 export default function App() {
-  const plates = useMassStorage();
-  const setPlates = () => {
-    console.warn("plate editing not implemented");
-  };
+  const { plates, putPlate } = useMassStorage();
+
   const [state, setState] = useState<State>(getUrlState);
   const { target, barWeight } = state;
 
@@ -349,30 +347,23 @@ export default function App() {
               <input
                 type="color"
                 value={plate.color}
-                onChange={(e) =>
-                  setPlates((d) => {
-                    d[index].color = e.target.value;
-                  })
-                }
+                onChange={(e) => putPlate({ ...plate, color: e.target.value })}
               />
               <input
                 type="number"
                 step={1}
                 min={0}
                 value={plate.count}
-                onChange={(e) =>
-                  setPlates((d) => {
-                    d[index].count = numbdfined(e.target.value);
-                  })
-                }
+                onChange={(e) => {
+                  // todo: undefined plate count?
+                  putPlate({ ...plate, count: numbdfined(e.target.value) });
+                }}
               />
               <button
                 type="button"
                 disabled={!plate.count}
                 onClick={() =>
-                  setPlates((d) => {
-                    d[index].count! -= 1;
-                  })
+                  putPlate({ ...plate, count: (plate.count ?? 1) - 1 })
                 }
               >
                 -
@@ -380,9 +371,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() =>
-                  setPlates((d) => {
-                    d[index].count = (d[index].count ?? 0) + 1;
-                  })
+                  putPlate({ ...plate, count: (plate.count ?? 0) + 1 })
                 }
               >
                 +

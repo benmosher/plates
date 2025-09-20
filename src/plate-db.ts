@@ -1,9 +1,10 @@
 // create a database
 
-import { use } from "react";
+import { use, useCallback, useMemo, useState } from "react";
+import { useImmer } from "use-immer";
 
 export interface Plate {
-  count: number;
+  count?: number;
 
   /** this can be pounds or kilos; up to the user */
   weight: number;
@@ -29,15 +30,6 @@ const PLATES_DEFAULT: readonly Plate[] = [
   { weight: 45, thicknessMm: 35, diameterMm: 225, color: "#3C71F7", count: 3 },
   { weight: 55, thicknessMm: 37, diameterMm: 225, color: "#EE402E", count: 0 },
 ];
-
-interface ObjectDb<T, K> {
-  objects: readonly T[];
-
-  put(object: T): void;
-  delete(key: K): void;
-}
-
-type MassStorage = ObjectDb<Plate, number>;
 
 /**
  * Write the default plates to the database at startup, if
@@ -116,11 +108,50 @@ function initializeDatabase(): Promise<Initialized> {
 
 let dbPromise: Promise<Initialized> | null = null;
 
-export function useMassStorage(): readonly Plate[] {
+interface MassStorage {
+  readonly plates: readonly Plate[];
+
+  putPlate(plate: Plate): void;
+}
+
+export function useMassStorage(): MassStorage {
   if (dbPromise == null) {
     dbPromise = initializeDatabase();
   }
 
-  const { plates } = use(dbPromise);
-  return plates;
+  const { db, plates: initialDbPlates } = use(dbPromise);
+
+  // db does not send change events, so we must manage the plate state ourselves
+  const [plates, setPlates] = useImmer(
+    initialDbPlates.toSorted((a, b) => a.weight - b.weight)
+  );
+
+  const putPlate = useCallback(
+    (plate: Plate) => {
+      setPlates((draft) => {
+        const index = draft.findIndex((p) => p.weight === plate.weight);
+        if (index >= 0) {
+          draft[index] = plate;
+        } else {
+          draft.push(plate);
+          draft.sort((a, b) => a.weight - b.weight);
+        }
+      });
+      const txn = db.transaction("plates", "readwrite");
+      const store = txn.objectStore("plates");
+      const putRequest = store.put(plate);
+      putRequest.onsuccess = function () {
+        console.log(`plate ${plate.weight} saved`);
+      };
+      putRequest.onerror = function () {
+        console.error(
+          `error saving plate ${plate.weight}: ${this.error?.message}`
+        );
+      };
+      txn.commit();
+    },
+    [db]
+  );
+
+  return useMemo(() => ({ plates, putPlate }), [plates, putPlate]);
 }
