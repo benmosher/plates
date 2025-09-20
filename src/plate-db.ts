@@ -1,8 +1,8 @@
 // create a database
 
-import { use, useEffect, useRef, useState } from "react";
+import { use } from "react";
 
-interface Plate {
+export interface Plate {
   count: number;
 
   /** this can be pounds or kilos; up to the user */
@@ -30,44 +30,61 @@ const PLATES_DEFAULT: readonly Plate[] = [
   { weight: 55, thicknessMm: 37, diameterMm: 225, color: "#EE402E", count: 0 },
 ];
 
-interface MassStorage {
-  // all known plates
-  plates: readonly Plate[];
+interface ObjectDb<T, K> {
+  objects: readonly T[];
 
-  put(plate: Plate): void;
-  delete(weight: number): void;
+  put(object: T): void;
+  delete(key: K): void;
 }
+
+type MassStorage = ObjectDb<Plate, number>;
 
 /**
  * Write the default plates to the database at startup, if
  * it is empty.
+ * Otherwise, read the existing data.
  */
-function createInitialPlateConfiguration(db: IDBDatabase): Promise<void> {
-  const txn = db.transaction("plates", "readwrite");
-  const store = txn.objectStore("plates");
-  const countRequest = store.count();
+function initializeStore<T>(
+  db: IDBDatabase,
+  storeName: string,
+  defaultData: readonly T[]
+): Promise<readonly T[]> {
+  const txn = db.transaction(storeName, "readwrite");
+  const store = txn.objectStore(storeName);
+  const request = store.getAll();
   return new Promise((resolve, reject) => {
-    countRequest.onsuccess = function () {
-      if (this.result === 0) {
-        console.log("initializing plates store");
-        for (const plate of PLATES_DEFAULT) {
-          store.add(plate);
+    request.onsuccess = function () {
+      if (this.result.length === 0) {
+        console.log(`initializing ${storeName} store`);
+        for (const item of defaultData) {
+          store.add(item);
         }
+        txn.oncomplete = function () {
+          console.log(`${storeName} store initialized`);
+          resolve(defaultData);
+        };
+        txn.onerror = function () {
+          reject(this.error);
+        };
+      } else {
+        console.log(`${storeName} store already initialized`);
+        resolve(this.result as readonly T[]);
       }
-      txn.oncomplete = function () {
-        console.log("plates store initialized");
-        resolve();
-      };
       txn.commit();
     };
-    countRequest.onerror = function () {
+    request.onerror = function () {
       reject(this.error);
     };
   });
 }
 
+type Initialized = {
+  db: IDBDatabase;
+  plates: readonly Plate[];
+};
+
 /** Resolves when database is available and initialized */
-function initializeDatabase(): Promise<IDBDatabase> {
+function initializeDatabase(): Promise<Initialized> {
   return new Promise((resolve, reject) => {
     // TODO: reject on error?
     const request = indexedDB.open("mass", 1);
@@ -75,9 +92,10 @@ function initializeDatabase(): Promise<IDBDatabase> {
     // capture the database
     request.onsuccess = function () {
       console.log("database opened, checking data");
-      createInitialPlateConfiguration(this.result).then(() =>
-        resolve(this.result)
-      );
+      initializeStore(this.result, "plates", PLATES_DEFAULT).then((plates) => {
+        console.log("database initialized");
+        resolve({ db: this.result, plates });
+      });
     };
 
     /** initialize the data */
@@ -96,12 +114,13 @@ function initializeDatabase(): Promise<IDBDatabase> {
   });
 }
 
-let dbPromise: Promise<IDBDatabase> | null = null;
+let dbPromise: Promise<Initialized> | null = null;
 
-export function useDatabase(): IDBDatabase {
+export function useMassStorage(): readonly Plate[] {
   if (dbPromise == null) {
     dbPromise = initializeDatabase();
   }
 
-  return use(dbPromise);
+  const { plates } = use(dbPromise);
+  return plates;
 }
