@@ -1,6 +1,7 @@
 import { determinePlates, determineWeightSpace } from "./plate-math";
 import { useImmer } from "use-immer";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useDatabase } from "./plate-db";
 
 type Plate = {
   weight: number;
@@ -165,6 +166,7 @@ function getUrlState(): State {
 }
 
 export default function App() {
+  const db = useDatabase();
   const [state, setState] = useState<State>(getUrlState);
   const { target, barWeight } = state;
 
