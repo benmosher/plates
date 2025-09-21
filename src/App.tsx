@@ -84,6 +84,71 @@ function getUrlState(): State {
   };
 }
 
+function BarEditor(props: { bar: Bar }) {
+  const [bar, setBar] = useState<Partial<Bar>>(props.bar);
+  const fieldSetter =
+    (field: keyof Bar) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value =
+        e.target.type === "number"
+          ? numbdfined(e.target.value)
+          : e.target.value;
+      setBar((b) => ({ ...b, [field]: value }));
+    };
+  const invalidator = (field: keyof Bar, optional?: boolean) => {
+    if (bar[field] == props.bar[field]) return undefined;
+    if (bar[field] == null) return true; // invalid
+    if (!bar[field]) return !optional || bar[field] != null;
+    return false; // valid (not invalid)
+  };
+  return (
+    <article>
+      <form>
+        <input
+          type="text"
+          value={bar.name}
+          onChange={fieldSetter("name")}
+          placeholder="Name"
+          aria-invalid={invalidator("name")}
+        />
+        <fieldset role="group">
+          <input
+            type="number"
+            onChange={fieldSetter("weight")}
+            value={bar.weight}
+            aria-invalid={invalidator("weight")}
+          />
+          <input
+            type="text"
+            value={bar.type}
+            onChange={fieldSetter("type")}
+            aria-invalid={invalidator("type")}
+          />
+          <input
+            type="number"
+            value={bar.plateThreshold}
+            onChange={fieldSetter("plateThreshold")}
+            placeholder="(no max plate)"
+            aria-invalid={invalidator("plateThreshold", true)}
+          />
+          <input
+            type="number"
+            value={bar.maxLoad}
+            onChange={fieldSetter("maxLoad")}
+            placeholder="(no max load)"
+            aria-invalid={invalidator("maxLoad", true)}
+          />
+        </fieldset>
+        <small>Weight / Type / Max Plate / Max Load</small>
+        <input
+          type="submit"
+          value="Update"
+          disabled={bar == props.bar || !bar.name || !bar.weight || !bar.type}
+        />
+      </form>
+    </article>
+  );
+}
+
 export default function App() {
   const { plates, bars, putPlate } = useMassStorage();
 
@@ -250,62 +315,12 @@ export default function App() {
         </fieldset>
       </form>
 
-      {/* <details open>
-        <summary>Bar/handle</summary>
-        <form>
-          <label>
-            Bar weight:
-            <input
-              type="number"
-              value={barWeight}
-              // onChange={(e) => updateBarWeight(numbdfined(e.target.value))}
-            />
-          </label>
-          <fieldset>
-            <legend>Style:</legend>
-            <fieldset>
-              <label>
-                <input
-                  type="radio"
-                  name="bar"
-                  checked={activeBar.idx == null}
-                />
-                Heaviest bar of type:
-              </label>
-              <select name="barType">
-                {[...barTypes].map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </fieldset>
-            {bars.map((bar) => (
-              <fieldset key={bar.idx}>
-                <label>
-                  <input
-                    type="radio"
-                    name="bar"
-                    checked={activeBar.idx === bar.idx}
-                    // onChange={() => updateBarWeight(bar.weight)}
-                  />
-                  {bar.name}
-                </label>
-                {activeBar.idx == bar.idx && (
-                  <fieldset role="group">
-                    <input
-                      type="number"
-                      readOnly
-                      placeholder="(no max plate)"
-                      value={bar.plateThreshold}
-                    />
-                  </fieldset>
-                )}
-              </fieldset>
-            ))}
-          </fieldset>
-        </form>
-      </details> */}
+      <details>
+        <summary>Bars</summary>
+        {bars.map((bar) => (
+          <BarEditor key={bar.idx} bar={bar} />
+        ))}
+      </details>
       <details>
         <summary>Plates (pairs)</summary>
         <form>
