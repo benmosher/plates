@@ -1,5 +1,10 @@
-import { chooseBar, determinePlates, determineWeightSpace } from "./plate-math";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  chooseBar,
+  closestTarget,
+  determinePlates,
+  determineWeightSpace,
+} from "./plate-math";
+import React, { useMemo, useReducer, useState } from "react";
 import { useMassStorage, type Plate, type Bar } from "./plate-db";
 
 function numbdfined(value: string | null | undefined) {
@@ -85,7 +90,7 @@ function getUrlState(): State {
   const params = new URLSearchParams("?" + window.location.hash.slice(1));
   return {
     target: numbdfined(params.get("weight")),
-    barType: params.get("bar") ?? "barbell",
+    barType: params.get("bar") ?? undefined,
     percentage: numbdfined(params.get("percentage")),
     percentageBase: numbdfined(params.get("1rm")),
   };
@@ -162,16 +167,55 @@ function BarEditor(props: { bar: Bar; putBar?: (bar: Bar) => void }) {
   );
 }
 
+function stateReducer(state: State, newState: Partial<State>): State {
+  const percentageBase =
+    "percentageBase" in newState
+      ? newState.percentageBase
+      : state.percentageBase;
+  const barType = newState.barType ?? state.barType;
+
+  // if the target is being set directly, update percentage
+  if ("target" in newState) {
+    return {
+      target: newState.target,
+      percentage:
+        percentageBase && newState.target != null
+          ? Math.round((newState.target / percentageBase) * 100)
+          : undefined,
+      percentageBase,
+      barType,
+    };
+  }
+
+  // if the percentage is being set, clear target
+  // so it is recomputed outside the reducer
+  if ("percentage" in newState) {
+    return {
+      target: undefined,
+      percentage: newState.percentage,
+      percentageBase,
+      barType,
+    };
+  }
+
+  if (percentageBase !== state.percentageBase || barType !== state.barType) {
+    return { ...state, percentageBase, barType };
+  }
+
+  // no changes prescribed
+  return state;
+}
+
 export default function App() {
   const { plates, bars, putPlate, putBar } = useMassStorage();
 
-  const [state, setState] = useState<State>(getUrlState);
-  let { target, barType, percentage, percentageBase } = state;
+  let [{ target, percentage, percentageBase, barType }, dispatchState] =
+    useReducer(stateReducer, null, getUrlState);
 
-  const updater =
-    (field: keyof State) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setState((s) => ({ ...s, [field]: numbdfined(e.target.value) }));
-    };
+  // default bar type
+  if (!barType && bars[0]) {
+    barType = bars[0].type;
+  }
 
   // const saveURLState = () => {
   //   const currentUrlState = getUrlState();
@@ -229,8 +273,12 @@ export default function App() {
     ? possibleWeights[possibleWeights.length - 1]
     : undefined;
 
-  if (percentage && percentageBase) {
-    target = Math.round((percentageBase * percentage) / 500) * 5;
+  // use percentage to determine target if not defined
+  if (target == null && percentage != null && percentageBase != null) {
+    target = closestTarget(
+      (percentage * percentageBase) / 100,
+      possibleWeights
+    );
   }
   const activeBar = chooseBar(bars, target, barType);
   const barWeight = activeBar?.weight;
@@ -255,7 +303,7 @@ export default function App() {
               <DisplayPlate key={`left-${plate.weight}-${j}`} {...plate} />
             ))
           )}
-        <Handle {...activeBar} />
+        <Handle barLength={activeBar?.barLength ?? bars[0]?.barLength} />
         {determinedPlates.flatMap((plate) =>
           Array.from({ length: plate.count }, (_, j) => (
             <DisplayPlate key={`right-${plate.weight}-${j}`} {...plate} />
@@ -299,15 +347,15 @@ export default function App() {
               min={weightMin}
               max={weightMax}
               step={weightStep}
-              onChange={updater("target")}
+              onChange={(e) =>
+                dispatchState({ target: numbdfined(e.target.value) })
+              }
               aria-invalid={!validTarget}
             />
             <select
               value={barType}
               aria-invalid={!validTarget}
-              onChange={(e) =>
-                setState((s) => ({ ...s, barType: e.target.value }))
-              }
+              onChange={(e) => dispatchState({ barType: e.target.value })}
             >
               {Array.from(barTypes).map((type) => (
                 <option key={type} value={type}>
@@ -325,7 +373,9 @@ export default function App() {
               max={weightMax}
               step={weightStep}
               value={target}
-              onChange={updater("target")}
+              onChange={(e) =>
+                dispatchState({ target: numbdfined(e.target.value) })
+              }
             />
             <small>use slider for quick changes!</small>
           </label>
@@ -342,13 +392,18 @@ export default function App() {
               max={100}
               step={1}
               value={percentage}
-              onChange={updater("percentage")}
+              placeholder="%"
+              onChange={(e) =>
+                dispatchState({ percentage: numbdfined(e.target.value) })
+              }
             />
             <input
               type="number"
               placeholder="base (e.g. 1RM)"
               value={percentageBase}
-              onChange={updater("percentageBase")}
+              onChange={(e) =>
+                dispatchState({ percentageBase: numbdfined(e.target.value) })
+              }
             />
           </fieldset>
           <input
@@ -357,7 +412,9 @@ export default function App() {
             max={100}
             step={1}
             value={percentage}
-            onChange={updater("percentage")}
+            onChange={(e) =>
+              dispatchState({ percentage: numbdfined(e.target.value) })
+            }
           />
           <small>use slider to tweak percentage</small>
         </form>
