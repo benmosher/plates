@@ -1,61 +1,6 @@
-import { determinePlates, determineWeightSpace } from "./plate-math";
+import { chooseBar, determinePlates, determineWeightSpace } from "./plate-math";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useMassStorage, type Plate } from "./plate-db";
-
-type BarDisplay = {
-  barLength: number;
-  handleWidth: number;
-};
-
-/** special variables for different bars */
-type SpecialtyBar = BarDisplay & {
-  name: string;
-  weight: number;
-  sliderMinStep?: number;
-
-  /** the heaviest plate to put on this */
-  plateThreshold?: number;
-
-  maxLoad?: number;
-};
-
-// the first number is the highest bar weight for that config
-const BARS: [number, SpecialtyBar][] = [
-  [
-    5,
-    {
-      name: "Technique bar",
-      weight: 5,
-      maxLoad: 55, // including bar
-      barLength: 300,
-      handleWidth: 140,
-    },
-  ],
-  [
-    15,
-    {
-      name: "Olympic dumbbell",
-      weight: 12.5,
-      plateThreshold: 10,
-      barLength: 260,
-      handleWidth: 80,
-    },
-  ],
-  [
-    34.9,
-    { name: "Junior barbell", weight: 22.5, barLength: 400, handleWidth: 120 },
-  ],
-  [
-    Infinity,
-    {
-      name: "Olympic barbell",
-      weight: 45,
-      barLength: 500,
-      handleWidth: 200,
-      sliderMinStep: 5,
-    },
-  ],
-];
+import { useMassStorage, type Plate, type Bar } from "./plate-db";
 
 function numbdfined(value: string | null | undefined) {
   return value ? +value : undefined;
@@ -101,13 +46,7 @@ function Nubbin() {
   );
 }
 
-function Handle({
-  barLength,
-  handleWidth,
-}: {
-  barLength: number;
-  handleWidth: number;
-}) {
+function Handle({ barLength }: { barLength: number }) {
   return (
     <>
       <Nubbin />
@@ -132,40 +71,108 @@ function Handle({
 type State = {
   /** target weight */
   target?: number;
-  /** bar weight */
-  barWeight?: number;
+  /** best match bar type */
+  barType?: string;
 };
 
 function getUrlState(): State {
   // use hash as search
   const params = new URLSearchParams("?" + window.location.hash.slice(1));
   return {
-    target: numbdfined(params.get("tw")) ?? 47.5,
-    barWeight: numbdfined(params.get("bw")) ?? 12.5,
+    target: numbdfined(params.get("weight")) ?? 185,
+    barType: params.get("bar") ?? "barbell",
   };
 }
 
+function BarEditor(props: { bar: Bar; putBar?: (bar: Bar) => void }) {
+  const [bar, setBar] = useState<Partial<Bar>>(props.bar);
+  const fieldSetter =
+    (field: keyof Bar) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value =
+        e.target.type === "number"
+          ? numbdfined(e.target.value)
+          : e.target.value;
+      setBar((b) => ({ ...b, [field]: value }));
+    };
+  const invalidator = (field: keyof Bar, optional?: boolean) => {
+    if (bar[field] == props.bar[field]) return undefined;
+    if (bar[field] == null) return true; // invalid
+    if (!bar[field]) return !optional || bar[field] != null;
+    return false; // valid (not invalid)
+  };
+  return (
+    <article>
+      <form>
+        <input
+          type="text"
+          value={bar.name}
+          onChange={fieldSetter("name")}
+          placeholder="Name"
+          aria-invalid={invalidator("name")}
+        />
+        <fieldset role="group">
+          <input
+            type="number"
+            onChange={fieldSetter("weight")}
+            value={bar.weight}
+            aria-invalid={invalidator("weight")}
+          />
+          <input
+            type="text"
+            value={bar.type}
+            onChange={fieldSetter("type")}
+            aria-invalid={invalidator("type")}
+          />
+          <input
+            type="number"
+            value={bar.plateThreshold}
+            onChange={fieldSetter("plateThreshold")}
+            placeholder="(no max plate)"
+            aria-invalid={invalidator("plateThreshold", true)}
+          />
+          <input
+            type="number"
+            value={bar.maxLoad}
+            onChange={fieldSetter("maxLoad")}
+            placeholder="(no max load)"
+            aria-invalid={invalidator("maxLoad", true)}
+          />
+        </fieldset>
+        <small>Weight / Type / Max Plate / Max Load</small>
+        <input
+          type="submit"
+          value="Save"
+          disabled={bar == props.bar || !bar.name || !bar.weight || !bar.type}
+          onClick={(e) => {
+            e.preventDefault();
+            if (props.putBar && bar.name && bar.weight && bar.type) {
+              props.putBar(bar as Bar);
+            }
+          }}
+        />
+      </form>
+    </article>
+  );
+}
+
 export default function App() {
-  const { plates, putPlate } = useMassStorage();
+  const { plates, bars, putPlate, putBar } = useMassStorage();
 
   const [state, setState] = useState<State>(getUrlState);
-  const { target, barWeight } = state;
+  const { target, barType } = state;
 
   const updateTarget = useCallback((v: number | undefined) => {
     setState((s) => ({ ...s, target: v }));
-  }, []);
-  const updateBarWeight = useCallback((v: number | undefined) => {
-    setState((s) => ({ ...s, barWeight: v }));
   }, []);
 
   const saveURLState = () => {
     const currentUrlState = getUrlState();
     if (
       currentUrlState.target === target &&
-      currentUrlState.barWeight === barWeight
+      currentUrlState.barType === barType
     )
       return; // don't push a state if we're matching
-    history.pushState(null, "", `#tw=${target}&bw=${barWeight}`);
+    history.pushState(null, "", `#weight=${target}&bar=${barType}`);
   };
 
   // slider does not have onBlur,
@@ -175,7 +182,7 @@ export default function App() {
       const cancelHandle = setTimeout(saveURLState, 1000);
       return () => clearTimeout(cancelHandle);
     },
-    [target, barWeight]
+    [target, barType]
   );
 
   useEffect(
@@ -189,45 +196,34 @@ export default function App() {
     [setState]
   );
 
-  // find the closest matching bar config
-  const barIndex =
-    BARS.findIndex(([breakpoint]) => (barWeight ?? 0) <= breakpoint) ??
-    BARS.length - 1;
+  const activeBar = chooseBar(bars, target, barType);
+  const barWeight = activeBar?.weight;
 
-  const bar = BARS[barIndex][1];
+  const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
-  const validPlates = useMemo<readonly Plate[]>(() => {
-    const filtered = plates.filter(
-      (p) =>
-        p.count &&
-        p.weight &&
-        // discard plates above the bar's threshold
-        (!bar.plateThreshold || p.weight <= bar.plateThreshold)
-    ) as Plate[];
+  const validPlates = useMemo<readonly (Plate & { count: number })[]>(() => {
+    const filtered = plates.filter((p) => p.count && p.weight) as (Plate & {
+      count: number;
+    })[];
     filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
-  }, [plates, bar]);
+  }, [plates, activeBar]);
 
   const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
-  const possibleWeights = useMemo(() => {
-    let weights = determineWeightSpace(
-      barWeight,
-      // TODO: pass raw Plates and expand internally
-      validPlates.flatMap((p) =>
-        Array.from({ length: p.count }, () => p.weight)
-      )
-    );
-    const { maxLoad } = bar;
-    if (maxLoad != null && weights[weights.length - 1] > maxLoad) {
-      weights = weights.filter((w) => w <= maxLoad);
-    }
-    return weights;
-  }, [barWeight, validPlates]);
+
+  const possibleWeights = useMemo(
+    () =>
+      determineWeightSpace(
+        bars.filter((b) => b.type === barType),
+        validPlates
+      ),
+    [bars, validPlates]
+  );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
     ? possibleWeights[possibleWeights.length - 1]
     : undefined;
-  const determinedPlates = determinePlates(target, barWeight, validPlates);
+  const determinedPlates = determinePlates(target, activeBar, validPlates);
   const validTarget = possibleWeights.includes(target ?? -1);
 
   return (
@@ -248,7 +244,7 @@ export default function App() {
               <DisplayPlate key={`left-${plate.weight}-${j}`} {...plate} />
             ))
           )}
-        <Handle {...bar} />
+        <Handle {...activeBar} />
         {determinedPlates.flatMap((plate) =>
           Array.from({ length: plate.count }, (_, j) => (
             <DisplayPlate key={`right-${plate.weight}-${j}`} {...plate} />
@@ -256,13 +252,24 @@ export default function App() {
         )}
         <Nubbin />
       </section>
-      <h3>
-        {validTarget
-          ? determinedPlates
-              .map((p) => (p.count > 1 ? `${p.weight}x${p.count}` : p.weight))
-              .join(", ") || "(empty)"
-          : "No valid plate combination!"}
-      </h3>
+      <section>
+        <p>
+          Bar:&nbsp;
+          <b>{activeBar ? `${activeBar.name} (${barWeight})` : "no bar!"}</b>
+        </p>
+        <p>
+          Plates:&nbsp;
+          <b>
+            {validTarget
+              ? determinedPlates
+                  .map((p) =>
+                    p.count > 1 ? `${p.weight}x${p.count}` : p.weight
+                  )
+                  .join(", ") || "(empty)"
+              : "No valid plate combination!"}
+          </b>
+        </p>
+      </section>
       <form>
         <datalist id="target-options">
           {possibleWeights?.map((v) => (
@@ -273,16 +280,31 @@ export default function App() {
         </datalist>
         <fieldset onBlur={saveURLState}>
           <legend>Input work weight:</legend>
-          <input
-            id="target-number"
-            type="number"
-            value={target}
-            min={weightMin}
-            max={weightMax}
-            step={weightStep}
-            onChange={(e) => updateTarget(numbdfined(e.target.value))}
-            aria-invalid={!validTarget}
-          />
+          <fieldset role="group">
+            <input
+              id="target-number"
+              type="number"
+              value={target}
+              min={weightMin}
+              max={weightMax}
+              step={weightStep}
+              onChange={(e) => updateTarget(numbdfined(e.target.value))}
+              aria-invalid={!validTarget}
+            />
+            <select
+              value={barType}
+              aria-invalid={!validTarget}
+              onChange={(e) =>
+                setState((s) => ({ ...s, barType: e.target.value }))
+              }
+            >
+              {Array.from(barTypes).map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </fieldset>
           <label>
             <input
               id="target-range"
@@ -290,7 +312,7 @@ export default function App() {
               list="target-options"
               min={weightMin}
               max={weightMax}
-              step={bar.sliderMinStep ?? weightStep}
+              step={weightStep}
               value={target}
               onChange={(e) => updateTarget(numbdfined(e.target.value))}
             />
@@ -299,44 +321,11 @@ export default function App() {
         </fieldset>
       </form>
 
-      <details open>
-        <summary>Bar/handle</summary>
-        <form>
-          <label>
-            Bar weight:
-            <input
-              type="number"
-              value={barWeight}
-              onChange={(e) => updateBarWeight(numbdfined(e.target.value))}
-            />
-          </label>
-          <fieldset>
-            <legend>Style:</legend>
-            {BARS.map(([, bar], idx) => (
-              <fieldset key={idx}>
-                <label>
-                  <input
-                    type="radio"
-                    name="bar"
-                    checked={barIndex === idx}
-                    onChange={() => updateBarWeight(bar.weight)}
-                  />
-                  {bar.name}
-                </label>
-                {barIndex == idx && (
-                  <fieldset role="group">
-                    <input
-                      type="number"
-                      readOnly
-                      placeholder="(no max plate)"
-                      value={bar.plateThreshold}
-                    />
-                  </fieldset>
-                )}
-              </fieldset>
-            ))}
-          </fieldset>
-        </form>
+      <details>
+        <summary>Bars</summary>
+        {bars.map((bar) => (
+          <BarEditor key={bar.idx} bar={bar} putBar={putBar} />
+        ))}
       </details>
       <details>
         <summary>Plates (pairs)</summary>

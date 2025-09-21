@@ -2,17 +2,21 @@ export function determinePlates<
   Plate extends { weight: number; count: number }
 >(
   target: number | undefined,
-  handle: number | undefined,
+  handle: { weight: number; plateThreshold?: number } | null,
   plates: readonly Plate[]
 ): readonly Plate[] {
   // don't bother
   if (!target || !handle || !plates.length) return [];
 
   const platesUsed: Plate[] = [];
-  let weightLeft = (target - handle) / 2;
+  let weightLeft = (target - handle.weight) / 2;
 
   for (let i = plates.length - 1; weightLeft > 0 && i >= 0; i--) {
     const plate = plates[i];
+
+    if (handle.plateThreshold != null && plate.weight > handle.plateThreshold)
+      continue; // skip this plate if it exceeds the threshold
+
     // use as many of this plate as possible
     let countUsed = Math.min(
       plate.count,
@@ -37,17 +41,23 @@ export function determinePlates<
  * @param plates - the available plates _for one side_
  */
 export function determinePlateCombos(
-  plates: readonly number[],
-  pivot: number = 0
+  plates: readonly { weight: number; count: number }[],
+  pivot: number = 0,
+  usedCount: number = 0
 ): number[] {
   // base case
   if (pivot >= plates.length) return [0];
 
   // work down from the largest to smallest
   const plate = plates[plates.length - 1 - pivot];
-  const loaded = 2 * plate;
 
-  const loads = determinePlateCombos(plates, pivot + 1);
+  if (plate.count < usedCount) throw new Error("usedCount exceeds plate count");
+  if (plate.count == usedCount)
+    return determinePlateCombos(plates, pivot + 1, 0);
+
+  const loaded = 2 * plate.weight;
+
+  const loads = determinePlateCombos(plates, pivot, usedCount + 1);
   return _merge(
     loads,
     loads.map((l) => l + loaded)
@@ -55,13 +65,39 @@ export function determinePlateCombos(
 }
 
 export function determineWeightSpace(
-  handle: number | undefined,
-  plates: readonly number[]
+  bars: readonly {
+    weight: number;
+    maxLoad?: number;
+    plateThreshold?: number;
+  }[],
+  plates: readonly { weight: number; count: number }[]
 ) {
-  if (handle == null) return [];
-  const weights = determinePlateCombos(plates);
-  weights.forEach((w, i) => (weights[i] = w + handle));
-  return weights;
+  // merge all possible spaces for all selected bars
+  return bars.map((b) => deterimineBarWeightSpace(b, plates)).reduce(_merge);
+}
+
+function deterimineBarWeightSpace(
+  bar: { weight: number; maxLoad?: number; plateThreshold?: number },
+  plates: readonly { weight: number; count: number }[]
+) {
+  // filter plates by threshold
+  const validPlates =
+    bar.plateThreshold != null
+      ? plates.filter((p) => p.weight <= bar.plateThreshold!)
+      : plates;
+
+  const plateCombos = determinePlateCombos(validPlates);
+
+  const barWeights = [];
+  for (const combo of plateCombos) {
+    const total = combo + bar.weight;
+    if (bar.maxLoad != null && total > bar.maxLoad) {
+      break;
+    }
+    barWeights.push(total);
+  }
+
+  return barWeights;
 }
 
 // merge two ascending unique arrays, discarding duplicates between them
@@ -85,4 +121,24 @@ function _merge(a: number[], b: number[]) {
   while (bi < b.length) result.push(b[bi++]);
 
   return result;
+}
+
+/**
+ * returns the heaviest bar that meets the criteria.
+ */
+export function chooseBar<
+  Type extends string,
+  Bar extends { type: Type; weight: number }
+>(bars: readonly Bar[], target: number | undefined, type?: Type): Bar | null {
+  // no inputs; return null
+  if (target == null || bars.length === 0) return null;
+
+  let heaviest: Bar | null = null;
+  for (const bar of bars) {
+    if (bar.weight > target) continue;
+    if (type && bar.type !== type) continue;
+    if (heaviest == null || bar.weight > heaviest.weight) heaviest = bar;
+  }
+
+  return heaviest;
 }
