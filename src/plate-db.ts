@@ -14,6 +14,69 @@ export interface Plate {
   color: string;
 }
 
+/**
+ * Allow different types of bars
+ * to auto-choose the correct one.
+ * future: curl? hex? axel?
+ */
+type BarType = "barbell" | "dumbbell";
+
+/** special variables for different bars */
+export interface Bar {
+  /** unique key, auto-incrementing */
+  idx: number;
+
+  name: string;
+  type: BarType;
+  weight: number;
+  sliderMinStep?: number;
+
+  plateThreshold?: number;
+
+  maxLoad?: number;
+
+  barLength: number;
+  handleWidth: number;
+}
+
+type BarInput = Omit<Bar, "idx"> & { idx?: number };
+
+const INITIAL_BARS: Bar[] = (
+  [
+    {
+      name: "Olympic barbell",
+      type: "barbell",
+      weight: 45,
+      barLength: 500,
+      handleWidth: 200,
+      sliderMinStep: 5,
+    },
+    {
+      name: "Olympic dumbbell",
+      type: "dumbbell",
+      weight: 12.5,
+      plateThreshold: 10,
+      barLength: 260,
+      handleWidth: 80,
+    },
+    {
+      name: "Junior barbell",
+      type: "barbell",
+      weight: 22.5,
+      barLength: 400,
+      handleWidth: 120,
+    },
+    {
+      name: "Technique bar",
+      type: "barbell",
+      weight: 5,
+      maxLoad: 55, // including bar
+      barLength: 300,
+      handleWidth: 140,
+    },
+  ] as BarInput[]
+).map((b, i) => ({ ...b, idx: i }));
+
 const INITIAL_PLATES: readonly Plate[] = [
   { weight: 0.25, thicknessMm: 8, diameterMm: 57, color: "#62D926", count: 1 },
   { weight: 0.5, thicknessMm: 9, diameterMm: 60, color: "#FFBF00", count: 1 },
@@ -36,11 +99,10 @@ const INITIAL_PLATES: readonly Plate[] = [
  * Otherwise, read the existing data.
  */
 function initializeStore<T>(
-  db: IDBDatabase,
+  txn: IDBTransaction,
   storeName: string,
   defaultData: readonly T[]
 ): Promise<readonly T[]> {
-  const txn = db.transaction(storeName, "readwrite");
   const store = txn.objectStore(storeName);
   const request = store.getAll();
   return new Promise((resolve, reject) => {
@@ -58,7 +120,6 @@ function initializeStore<T>(
       } else {
         resolve(this.result as readonly T[]);
       }
-      txn.commit();
     };
     request.onerror = function () {
       reject(this.error);
@@ -69,18 +130,31 @@ function initializeStore<T>(
 /** Resolves when database is available and initialized */
 function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("mass", 1);
+    const request = indexedDB.open("mass", 2); // v2: plates + bars
 
     // capture the database
     request.onsuccess = function () {
       db = this.result;
+      const txn = db.transaction(["plates", "bars"], "readwrite");
 
-      initializeStore(db, "plates", INITIAL_PLATES).then((plates) => {
-        // populate the in-memory map
-        for (const plate of plates) {
-          MAP_VIEW.set(plate.weight, plate);
+      const initPlates = initializeStore(txn, "plates", INITIAL_PLATES).then(
+        (plates) => {
+          // populate the in-memory map
+          for (const plate of plates) {
+            PLATE_MAP.set(plate.weight, plate);
+          }
         }
-        FLAT_VIEW = _sortedPlateSnapshot();
+      );
+      const initBars = initializeStore(txn, "bars", INITIAL_BARS).then(
+        (bars) => {
+          // populate the in-memory map
+          for (const bar of bars) {
+            BAR_MAP.set(bar.idx, bar);
+          }
+        }
+      );
+      Promise.all([initPlates, initBars]).then(() => {
+        txn.commit();
         resolve();
       }, reject);
     };
@@ -91,6 +165,9 @@ function initializeDatabase(): Promise<void> {
 
       if (!db.objectStoreNames.contains("plates")) {
         db.createObjectStore("plates", { keyPath: "weight" });
+      }
+      if (!db.objectStoreNames.contains("bars")) {
+        db.createObjectStore("bars", { keyPath: "idx", autoIncrement: true });
       }
     };
 
@@ -109,8 +186,8 @@ function putPlate(plate: Plate) {
   }
 
   // update the in-memory map and view
-  MAP_VIEW.set(plate.weight, plate);
-  FLAT_VIEW = _sortedPlateSnapshot();
+  PLATE_MAP.set(plate.weight, plate);
+  READ_VIEW = { ...READ_VIEW, plates: PLATE_MAP };
 
   // notify subscribers
   _subscriptions.forEach((cb) => cb());
@@ -130,8 +207,15 @@ function putPlate(plate: Plate) {
  * This is necessary because IndexedDB does not provide
  * change notifications.
  */
-const MAP_VIEW = new Map<number, Plate>();
-let FLAT_VIEW: readonly Plate[] = [];
+const PLATE_MAP = new Map<number, Plate>();
+/** bars have a unique key number */
+const BAR_MAP = new Map<number, Bar>();
+
+/** for the snapshot */
+let READ_VIEW = {
+  plates: PLATE_MAP,
+  bars: BAR_MAP,
+};
 
 /** callbacks to fire on updates */
 const _subscriptions = new Set<() => void>();
@@ -139,17 +223,13 @@ function _subscribe(cb: () => void) {
   _subscriptions.add(cb);
   return () => _subscriptions.delete(cb);
 }
-function _getSnapshot(): readonly Plate[] {
-  return FLAT_VIEW;
-}
-function _sortedPlateSnapshot(): readonly Plate[] {
-  const plates = Array.from(MAP_VIEW.values());
-  plates.sort((a, b) => a.weight - b.weight);
-  return plates;
+function _getSnapshot() {
+  return READ_VIEW;
 }
 
 interface MassStorage {
   readonly plates: readonly Plate[];
+  readonly bars: readonly Bar[];
 
   putPlate(plate: Plate): void;
 }
@@ -162,13 +242,16 @@ export function useMassStorage(): MassStorage {
   // suspend while db is initializing
   use(dbPromise);
 
-  const plates = useSyncExternalStore(_subscribe, _getSnapshot);
+  const { plates, bars } = useSyncExternalStore(_subscribe, _getSnapshot);
 
   return useMemo(
     () => ({
-      plates,
+      plates: Array.from(plates.values()).toSorted(
+        (a, b) => a.weight - b.weight
+      ),
+      bars: Array.from(bars.values()).toSorted((a, b) => a.idx - b.idx),
       putPlate,
     }),
-    [plates, putPlate]
+    [plates, bars, putPlate]
   );
 }
