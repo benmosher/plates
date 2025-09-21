@@ -142,3 +142,34 @@ export function chooseBar<
 
   return heaviest;
 }
+
+export function closestTarget(rawTarget: number, possibleWeights: number[]) {
+  // can't do it if no weights
+  if (possibleWeights.length === 0) return undefined;
+
+  // binary search for closest weight (possibleWeights is sorted ascending)
+  let low = 0,
+    high = possibleWeights.length,
+    minDiff = Infinity,
+    best: number | undefined = undefined;
+
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    const midWeight = possibleWeights[mid];
+    const distance = midWeight - rawTarget;
+
+    // break out on a direct hit
+    if (distance == 0) return midWeight;
+
+    // update best if closer
+    const absDistance = Math.abs(distance);
+    if (absDistance < minDiff) {
+      minDiff = absDistance;
+      best = midWeight;
+    }
+    if (midWeight < rawTarget) low = mid + 1;
+    else high = mid;
+  }
+
+  return best;
+}

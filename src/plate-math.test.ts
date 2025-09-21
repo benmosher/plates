@@ -1,6 +1,7 @@
 import { expect, describe, test } from "vitest";
 
 import {
+  closestTarget,
   determinePlateCombos,
   determinePlates,
   determineWeightSpace,
@@ -72,5 +73,29 @@ describe("weight space", () => {
         [...singles([0.25, 0.5, 0.75, 1, 2.5, 5]), { weight: 10, count: 4 }]
       )
     ).toEqual(range(12.5, 112.5, 0.5));
+  });
+});
+
+describe("choose closest weight", () => {
+  const possibleWeights = range(45, 225, 5);
+  // sanity check range
+  expect(possibleWeights[0]).toBe(45);
+  expect(possibleWeights[possibleWeights.length - 1]).toBe(225);
+
+  const cases = [
+    [44, 45],
+    [45, 45],
+    [46, 45],
+    [47, 45],
+    [134, 135],
+    [137, 135],
+    [138, 140],
+    [0, 45],
+    [1000, 225],
+  ];
+  cases.forEach(([input, expected]) => {
+    test(`closest weight to ${input} is ${expected}`, () => {
+      expect(closestTarget(input as number, possibleWeights)).toEqual(expected);
+    });
   });
 });
