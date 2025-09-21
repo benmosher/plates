@@ -199,6 +199,26 @@ function putPlate(plate: Plate) {
   txn.commit();
 }
 
+function putBar(bar: Bar) {
+  if (db == null) {
+    throw new Error("database not initialized");
+  }
+
+  // update the in-memory map and view
+  BAR_MAP.set(bar.idx, bar);
+
+  READ_VIEW = { ...READ_VIEW, bars: BAR_MAP };
+
+  // notify subscribers
+  _subscriptions.forEach((cb) => cb());
+
+  // write to the database
+  const txn = db.transaction("bars", "readwrite");
+  const store = txn.objectStore("bars");
+  store.put(bar);
+  txn.commit();
+}
+
 /**
  * This map holds the current state of the plates
  * in memory, but is global so that multiple calls to
@@ -232,6 +252,7 @@ interface MassStorage {
   readonly bars: readonly Bar[];
 
   putPlate(plate: Plate): void;
+  putBar(bar: Bar): void;
 }
 
 export function useMassStorage(): MassStorage {
@@ -242,16 +263,17 @@ export function useMassStorage(): MassStorage {
   // suspend while db is initializing
   use(dbPromise);
 
-  const { plates, bars } = useSyncExternalStore(_subscribe, _getSnapshot);
+  const store = useSyncExternalStore(_subscribe, _getSnapshot);
 
   return useMemo(
     () => ({
-      plates: Array.from(plates.values()).toSorted(
+      plates: Array.from(store.plates.values()).toSorted(
         (a, b) => a.weight - b.weight
       ),
-      bars: Array.from(bars.values()).toSorted((a, b) => a.idx - b.idx),
+      bars: Array.from(store.bars.values()).toSorted((a, b) => a.idx - b.idx),
       putPlate,
+      putBar,
     }),
-    [plates, bars, putPlate]
+    [store, putPlate, putBar]
   );
 }

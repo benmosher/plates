@@ -84,7 +84,7 @@ function getUrlState(): State {
   };
 }
 
-function BarEditor(props: { bar: Bar }) {
+function BarEditor(props: { bar: Bar; putBar?: (bar: Bar) => void }) {
   const [bar, setBar] = useState<Partial<Bar>>(props.bar);
   const fieldSetter =
     (field: keyof Bar) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,8 +141,14 @@ function BarEditor(props: { bar: Bar }) {
         <small>Weight / Type / Max Plate / Max Load</small>
         <input
           type="submit"
-          value="Update"
+          value="Save"
           disabled={bar == props.bar || !bar.name || !bar.weight || !bar.type}
+          onClick={(e) => {
+            e.preventDefault();
+            if (props.putBar && bar.name && bar.weight && bar.type) {
+              props.putBar(bar as Bar);
+            }
+          }}
         />
       </form>
     </article>
@@ -150,7 +156,7 @@ function BarEditor(props: { bar: Bar }) {
 }
 
 export default function App() {
-  const { plates, bars, putPlate } = useMassStorage();
+  const { plates, bars, putPlate, putBar } = useMassStorage();
 
   const [state, setState] = useState<State>(getUrlState);
   const { target, barType } = state;
@@ -318,7 +324,7 @@ export default function App() {
       <details>
         <summary>Bars</summary>
         {bars.map((bar) => (
-          <BarEditor key={bar.idx} bar={bar} />
+          <BarEditor key={bar.idx} bar={bar} putBar={putBar} />
         ))}
       </details>
       <details>
