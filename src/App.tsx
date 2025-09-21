@@ -73,14 +73,21 @@ type State = {
   target?: number;
   /** best match bar type */
   barType?: string;
+
+  /** percentage-based target */
+  percentage?: number;
+  /** base weight (e.g. 1RM) */
+  percentageBase?: number;
 };
 
 function getUrlState(): State {
   // use hash as search
   const params = new URLSearchParams("?" + window.location.hash.slice(1));
   return {
-    target: numbdfined(params.get("weight")) ?? 185,
+    target: numbdfined(params.get("weight")),
     barType: params.get("bar") ?? "barbell",
+    percentage: numbdfined(params.get("percentage")),
+    percentageBase: numbdfined(params.get("1rm")),
   };
 }
 
@@ -159,45 +166,43 @@ export default function App() {
   const { plates, bars, putPlate, putBar } = useMassStorage();
 
   const [state, setState] = useState<State>(getUrlState);
-  const { target, barType } = state;
+  let { target, barType, percentage, percentageBase } = state;
 
-  const updateTarget = useCallback((v: number | undefined) => {
-    setState((s) => ({ ...s, target: v }));
-  }, []);
+  const updater =
+    (field: keyof State) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setState((s) => ({ ...s, [field]: numbdfined(e.target.value) }));
+    };
 
-  const saveURLState = () => {
-    const currentUrlState = getUrlState();
-    if (
-      currentUrlState.target === target &&
-      currentUrlState.barType === barType
-    )
-      return; // don't push a state if we're matching
-    history.pushState(null, "", `#weight=${target}&bar=${barType}`);
-  };
+  // const saveURLState = () => {
+  //   const currentUrlState = getUrlState();
+  //   if (
+  //     currentUrlState.target === target &&
+  //     currentUrlState.barType === barType
+  //   )
+  //     return; // don't push a state if we're matching
+  //   history.pushState(null, "", `#weight=${target}&bar=${barType}`);
+  // };
 
-  // slider does not have onBlur,
-  // so debounce all changes instead
-  useEffect(
-    function saveToUrlDebounced() {
-      const cancelHandle = setTimeout(saveURLState, 1000);
-      return () => clearTimeout(cancelHandle);
-    },
-    [target, barType]
-  );
+  // // slider does not have onBlur,
+  // // so debounce all changes instead
+  // useEffect(
+  //   function saveToUrlDebounced() {
+  //     const cancelHandle = setTimeout(saveURLState, 1000);
+  //     return () => clearTimeout(cancelHandle);
+  //   },
+  //   [target, barType]
+  // );
 
-  useEffect(
-    function listenToPopState() {
-      const onPopState = () => {
-        setState(getUrlState());
-      };
-      window.addEventListener("popstate", onPopState);
-      return () => window.removeEventListener("popstate", onPopState);
-    },
-    [setState]
-  );
-
-  const activeBar = chooseBar(bars, target, barType);
-  const barWeight = activeBar?.weight;
+  // useEffect(
+  //   function listenToPopState() {
+  //     const onPopState = () => {
+  //       setState(getUrlState());
+  //     };
+  //     window.addEventListener("popstate", onPopState);
+  //     return () => window.removeEventListener("popstate", onPopState);
+  //   },
+  //   [setState]
+  // );
 
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
@@ -207,7 +212,7 @@ export default function App() {
     })[];
     filtered.sort((a, b) => a.weight - b.weight);
     return filtered;
-  }, [plates, activeBar]);
+  }, [plates]);
 
   const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
 
@@ -223,6 +228,12 @@ export default function App() {
   const weightMax = possibleWeights
     ? possibleWeights[possibleWeights.length - 1]
     : undefined;
+
+  if (percentage && percentageBase) {
+    target = Math.round((percentageBase * percentage) / 500) * 5;
+  }
+  const activeBar = chooseBar(bars, target, barType);
+  const barWeight = activeBar?.weight;
   const determinedPlates = determinePlates(target, activeBar, validPlates);
   const validTarget = possibleWeights.includes(target ?? -1);
 
@@ -278,7 +289,7 @@ export default function App() {
             </option>
           ))}
         </datalist>
-        <fieldset onBlur={saveURLState}>
+        <fieldset>
           <legend>Input work weight:</legend>
           <fieldset role="group">
             <input
@@ -288,7 +299,7 @@ export default function App() {
               min={weightMin}
               max={weightMax}
               step={weightStep}
-              onChange={(e) => updateTarget(numbdfined(e.target.value))}
+              onChange={updater("target")}
               aria-invalid={!validTarget}
             />
             <select
@@ -314,12 +325,43 @@ export default function App() {
               max={weightMax}
               step={weightStep}
               value={target}
-              onChange={(e) => updateTarget(numbdfined(e.target.value))}
+              onChange={updater("target")}
             />
             <small>use slider for quick changes!</small>
           </label>
         </fieldset>
       </form>
+
+      <details>
+        <summary>Adjust weight by percentage</summary>
+        <form>
+          <fieldset role="group">
+            <input
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              value={percentage}
+              onChange={updater("percentage")}
+            />
+            <input
+              type="number"
+              placeholder="base (e.g. 1RM)"
+              value={percentageBase}
+              onChange={updater("percentageBase")}
+            />
+          </fieldset>
+          <input
+            type="range"
+            min={1}
+            max={100}
+            step={1}
+            value={percentage}
+            onChange={updater("percentage")}
+          />
+          <small>use slider to tweak percentage</small>
+        </form>
+      </details>
 
       <details>
         <summary>Bars</summary>
