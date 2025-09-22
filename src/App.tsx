@@ -28,6 +28,26 @@ import BarEditor from "./BarEditor";
 import { numbdfined } from "./utils";
 import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
 import BarView from "./BarView";
+import { Link } from "react-router";
+
+function Nav() {
+  return (
+    <nav>
+      <ul>
+        <li>
+          <strong>
+            <Link to="/">Compute!</Link>
+          </strong>
+        </li>
+      </ul>
+      <ul>
+        <li>
+          <Link to="/mass">Mass</Link>
+        </li>
+      </ul>
+    </nav>
+  );
+}
 
 type State = {
   /** target weight */
@@ -250,6 +270,7 @@ function BarComputer({
 
   return (
     <>
+      <Nav />
       <BarView determinedPlates={determinedPlates} bar={activeBar} />
       <form>
         <datalist id="target-options">
