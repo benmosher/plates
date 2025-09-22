@@ -111,12 +111,7 @@ function initializeStore<T>(
         for (const item of defaultData) {
           store.add(item);
         }
-        txn.oncomplete = function () {
-          resolve(defaultData);
-        };
-        txn.onerror = function () {
-          reject(this.error);
-        };
+        resolve(defaultData);
       } else {
         resolve(this.result as readonly T[]);
       }
@@ -154,8 +149,8 @@ function initializeDatabase(): Promise<void> {
         }
       );
       Promise.all([initPlates, initBars]).then(() => {
+        txn.oncomplete = () => resolve();
         txn.commit();
-        resolve();
       }, reject);
     };
 
