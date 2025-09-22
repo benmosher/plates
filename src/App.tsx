@@ -283,7 +283,7 @@ export default function App() {
         bars.filter((b) => b.type === barType),
         validPlates
       ),
-    [bars, validPlates]
+    [bars, barType, validPlates]
   );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
@@ -399,7 +399,7 @@ export default function App() {
         </fieldset>
       </form>
 
-      <details open={percentage != null}>
+      <details>
         <summary>Adjust weight by percentage</summary>
         <form>
           <fieldset role="group">
