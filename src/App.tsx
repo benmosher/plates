@@ -110,7 +110,11 @@ function buildUrlHash(state: State): string {
   return `#${params.toString()}`;
 }
 
-function BarEditor(props: { bar: Bar; putBar?: (bar: Bar) => void }) {
+function BarEditor(props: {
+  bar: Bar;
+  putBar?: (bar: Bar) => void;
+  barTypeDatalistId?: string;
+}) {
   const [bar, setBar] = useState<Partial<Bar>>(props.bar);
   const fieldSetter =
     (field: keyof Bar) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +151,7 @@ function BarEditor(props: { bar: Bar; putBar?: (bar: Bar) => void }) {
             type="text"
             value={bar.type}
             onChange={fieldSetter("type")}
+            list={props.barTypeDatalistId}
             aria-invalid={invalidator("type")}
           />
           <input
@@ -439,8 +444,20 @@ export default function App() {
 
       <details>
         <summary>Bars</summary>
+        <datalist id="bar-type-options">
+          {Array.from(barTypes).map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </datalist>
         {bars.map((bar) => (
-          <BarEditor key={bar.idx} bar={bar} putBar={putBar} />
+          <BarEditor
+            key={bar.idx}
+            bar={bar}
+            putBar={putBar}
+            barTypeDatalistId="bar-type-options"
+          />
         ))}
       </details>
       <details>
