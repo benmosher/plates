@@ -11,6 +11,28 @@ function numbdfined(value: string | null | undefined) {
   return value ? +value : undefined;
 }
 
+function Nav() {
+  return (
+    <nav>
+      <ul>
+        <li>
+          <strong>
+            <a href=".">Compute!</a>
+          </strong>
+        </li>
+      </ul>
+      <ul>
+        <li>
+          <a href="./bars">Bars</a>
+        </li>
+        <li>
+          <a href="./plates">Plates</a>
+        </li>
+      </ul>
+    </nav>
+  );
+}
+
 function DisplayPlate({
   thicknessMm,
   diameterMm,
@@ -309,6 +331,7 @@ export default function App() {
 
   return (
     <>
+      <Nav />
       <section
         style={{
           height: Math.max(...validPlates.map((p) => p.diameterMm)) + 20,
