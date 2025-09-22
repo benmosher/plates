@@ -4,7 +4,7 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import React, { useMemo, useReducer, useState } from "react";
+import React, { useEffect, useMemo, useReducer, useState } from "react";
 import { useMassStorage, type Plate, type Bar } from "./plate-db";
 
 function numbdfined(value: string | null | undefined) {
@@ -91,9 +91,23 @@ function getUrlState(): State {
   return {
     target: numbdfined(params.get("weight")),
     barType: params.get("bar") ?? undefined,
-    percentage: numbdfined(params.get("percentage")),
+    percentage: numbdfined(params.get("pct")),
     percentageBase: numbdfined(params.get("1rm")),
   };
+}
+
+function buildUrlHash(state: State): string {
+  const params = new URLSearchParams();
+  if (state.target != null) params.set("weight", String(state.target));
+  if (state.barType) params.set("bar", state.barType);
+
+  // only set pct if target not explicitly set
+  if (state.percentage != null && state.target == null)
+    params.set("pct", String(state.percentage));
+
+  if (state.percentageBase != null)
+    params.set("1rm", String(state.percentageBase));
+  return `#${params.toString()}`;
 }
 
 function BarEditor(props: { bar: Bar; putBar?: (bar: Bar) => void }) {
@@ -206,47 +220,50 @@ function stateReducer(state: State, newState: Partial<State>): State {
   return state;
 }
 
+function useUrlState() {
+  const reducer = useReducer(stateReducer, null, getUrlState);
+
+  const saveURLState = () => {
+    if (
+      Object.entries(getUrlState()).every(
+        ([key, value]) => value === reducer[0][key as keyof State]
+      )
+    )
+      return; // don't push a state if we're matching
+
+    history.pushState(null, "", buildUrlHash(reducer[0]));
+  };
+
+  useEffect(function saveToUrlDebounced() {
+    const cancelHandle = setTimeout(saveURLState, 1000);
+    return () => clearTimeout(cancelHandle);
+  }, Object.values(reducer[0]));
+
+  useEffect(function listenToPopState() {
+    const onPopState = () => {
+      // get only the defined values from the URL
+      const newState = Object.fromEntries(
+        Object.entries(getUrlState()).filter(([, v]) => v != null)
+      ) as Partial<State>;
+
+      reducer[1](newState);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+  return reducer;
+}
+
 export default function App() {
   const { plates, bars, putPlate, putBar } = useMassStorage();
 
   let [{ target, percentage, percentageBase, barType }, dispatchState] =
-    useReducer(stateReducer, null, getUrlState);
+    useUrlState();
 
   // default bar type
   if (!barType && bars[0]) {
     barType = bars[0].type;
   }
-
-  // const saveURLState = () => {
-  //   const currentUrlState = getUrlState();
-  //   if (
-  //     currentUrlState.target === target &&
-  //     currentUrlState.barType === barType
-  //   )
-  //     return; // don't push a state if we're matching
-  //   history.pushState(null, "", `#weight=${target}&bar=${barType}`);
-  // };
-
-  // // slider does not have onBlur,
-  // // so debounce all changes instead
-  // useEffect(
-  //   function saveToUrlDebounced() {
-  //     const cancelHandle = setTimeout(saveURLState, 1000);
-  //     return () => clearTimeout(cancelHandle);
-  //   },
-  //   [target, barType]
-  // );
-
-  // useEffect(
-  //   function listenToPopState() {
-  //     const onPopState = () => {
-  //       setState(getUrlState());
-  //     };
-  //     window.addEventListener("popstate", onPopState);
-  //     return () => window.removeEventListener("popstate", onPopState);
-  //   },
-  //   [setState]
-  // );
 
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
@@ -382,7 +399,7 @@ export default function App() {
         </fieldset>
       </form>
 
-      <details>
+      <details open={percentage != null}>
         <summary>Adjust weight by percentage</summary>
         <form>
           <fieldset role="group">
