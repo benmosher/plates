@@ -506,10 +506,16 @@ export default function App() {
                 dispatchState({ percentage: numbdfined(e.target.value) })
               }
             />
+            <datalist id="1rm-options">
+              <option value="355" />
+              <option value="230" />
+              <option value="420" />
+            </datalist>
             <input
               type="number"
               placeholder="base (e.g. 1RM)"
               value={percentageBase ?? ""}
+              list="1rm-options"
               onChange={(e) =>
                 dispatchState({ percentageBase: numbdfined(e.target.value) })
               }
