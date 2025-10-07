@@ -126,13 +126,10 @@ function _merge(a: number[], b: number[]) {
 /**
  * returns the heaviest bar that meets the criteria.
  */
-export function chooseBar<
-  Type extends string,
-  Bar extends { type: Type; weight: number }
->(
+export function chooseBar<Bar extends { type: string; weight: number }>(
   bars: readonly Bar[],
   target: number | null | undefined,
-  type?: Type,
+  type?: string | null,
   weight?: number | null
 ): Bar | null {
   // no inputs; return null
