@@ -72,6 +72,7 @@ export function determineWeightSpace(
   }[],
   plates: readonly { weight: number; count: number }[]
 ) {
+  if (bars.length === 0) return [];
   // merge all possible spaces for all selected bars
   return bars.map((b) => deterimineBarWeightSpace(b, plates)).reduce(_merge);
 }
