@@ -4,18 +4,10 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import React, { useEffect, useMemo, useReducer, useState } from "react";
-import {
-  useMassStorage,
-  type Plate,
-  type Bar,
-  type BarInput,
-} from "./plate-db";
-import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
-
-function numbdfined(value: string | null | undefined) {
-  return value ? +value : undefined;
-}
+import { useEffect, useMemo, useReducer } from "react";
+import { useMassStorage, type Plate } from "./plate-db";
+import BarEditor from "./BarEditor";
+import { numbdfined } from "./utils";
 
 function DisplayPlate({
   thicknessMm,
@@ -83,7 +75,7 @@ type State = {
   /** target weight */
   target?: number | null;
   /** bar type */
-  barType?: string;
+  barType?: string | null;
   /** bar weight (if specified); null for best match */
   barWeight?: number | null;
 
@@ -93,12 +85,14 @@ type State = {
   percentageBase?: number | null;
 };
 
-function getUrlState(): State {
+function getUrlState(barTypes: Set<string>): State {
   // use hash as search
   const params = new URLSearchParams("?" + window.location.hash.slice(1));
+  let barType = params.get("bar") ?? null;
+  if (barType && !barTypes.has(barType)) barType = null;
   return {
     target: numbdfined(params.get("weight")) ?? null,
-    barType: params.get("bar") ?? undefined,
+    barType,
     barWeight: numbdfined(params.get("barWeight")) ?? null,
     percentage: numbdfined(params.get("pct")) ?? null,
     percentageBase: numbdfined(params.get("1rm")) ?? null,
@@ -118,96 +112,6 @@ function buildUrlHash(state: State): string {
   if (state.percentageBase != null)
     params.set("1rm", String(state.percentageBase));
   return `#${params.toString()}`;
-}
-
-function BarEditor(props: {
-  bar: Partial<Bar>;
-  putBar?: (bar: BarInput) => void;
-  deleteBar?: (idx: number) => void;
-  barTypeDatalistId?: string;
-}) {
-  const [bar, setBar] = useState(props.bar);
-  const { deleteBar } = props;
-  const { idx } = props.bar;
-
-  const fieldSetter =
-    (field: keyof Bar) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value =
-        e.target.type === "number"
-          ? numbdfined(e.target.value)
-          : e.target.value;
-      setBar((b) => ({ ...b, [field]: value }));
-    };
-  const invalidator = (field: keyof Bar, optional?: boolean) => {
-    if (bar[field] == props.bar[field]) return undefined;
-    if (bar[field] == null) return true; // invalid
-    if (!bar[field]) return !optional || bar[field] != null;
-    return false; // valid (not invalid)
-  };
-  return (
-    <article>
-      <form>
-        <input
-          type="text"
-          value={bar.name}
-          onChange={fieldSetter("name")}
-          placeholder="Name"
-          aria-invalid={invalidator("name")}
-        />
-        <fieldset role="group">
-          <input
-            type="number"
-            onChange={fieldSetter("weight")}
-            value={bar.weight}
-            aria-invalid={invalidator("weight")}
-          />
-          <input
-            type="text"
-            value={bar.type}
-            onChange={fieldSetter("type")}
-            list={props.barTypeDatalistId}
-            aria-invalid={invalidator("type")}
-          />
-          <input
-            type="number"
-            value={bar.plateThreshold}
-            onChange={fieldSetter("plateThreshold")}
-            placeholder="(no max plate)"
-            aria-invalid={invalidator("plateThreshold", true)}
-          />
-          <input
-            type="number"
-            value={bar.maxLoad}
-            onChange={fieldSetter("maxLoad")}
-            placeholder="(no max load)"
-            aria-invalid={invalidator("maxLoad", true)}
-          />
-        </fieldset>
-        <small>Weight / Type / Max Plate / Max Load</small>
-        <fieldset className="grid">
-          <input
-            type="submit"
-            value="Save"
-            className="primary"
-            disabled={bar == props.bar || !bar.name || !bar.weight || !bar.type}
-            onClick={(e) => {
-              e.preventDefault();
-              if (props.putBar && bar.name && bar.weight && bar.type) {
-                props.putBar(bar as Bar);
-              }
-            }}
-          />
-
-          <DoubleClickConfirmButton
-            onClick={() => deleteBar!(idx!)}
-            disabled={!deleteBar || idx == null}
-          >
-            Delete
-          </DoubleClickConfirmButton>
-        </fieldset>
-      </form>
-    </article>
-  );
 }
 
 function stateReducer(state: State, newState: Partial<State>): State {
@@ -250,12 +154,12 @@ function stateReducer(state: State, newState: Partial<State>): State {
   return { ...state, percentageBase, barType, barWeight };
 }
 
-function useUrlState() {
-  const reducer = useReducer(stateReducer, null, getUrlState);
+function useUrlState(barTypes: Set<string>) {
+  const reducer = useReducer(stateReducer, barTypes, getUrlState);
 
   const saveURLState = () => {
     if (
-      Object.entries(getUrlState()).every(
+      Object.entries(getUrlState(barTypes)).every(
         ([key, value]) => value === reducer[0][key as keyof State]
       )
     )
@@ -273,7 +177,7 @@ function useUrlState() {
     const onPopState = () => {
       // get only the defined values from the URL
       const newState = Object.fromEntries(
-        Object.entries(getUrlState()).filter(([, v]) => v != null)
+        Object.entries(getUrlState(barTypes)).filter(([, v]) => v != null)
       ) as Partial<State>;
 
       reducer[1](newState);
@@ -286,18 +190,17 @@ function useUrlState() {
 
 export default function App() {
   const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
+  const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
   let [
     { target, percentage, percentageBase, barType, barWeight },
     dispatchState,
-  ] = useUrlState();
+  ] = useUrlState(barTypes);
 
   // default bar type
   if (!barType && bars[0]) {
     barType = bars[0].type;
   }
-
-  const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
   const validPlates = useMemo<readonly (Plate & { count: number })[]>(() => {
     const filtered = plates.filter((p) => p.count && p.weight) as (Plate & {
