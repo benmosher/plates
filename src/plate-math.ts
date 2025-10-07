@@ -129,14 +129,20 @@ function _merge(a: number[], b: number[]) {
 export function chooseBar<
   Type extends string,
   Bar extends { type: Type; weight: number }
->(bars: readonly Bar[], target: number | undefined, type?: Type): Bar | null {
+>(
+  bars: readonly Bar[],
+  target: number | undefined,
+  type?: Type,
+  weight?: number | null
+): Bar | null {
   // no inputs; return null
   if (target == null || bars.length === 0) return null;
 
   let heaviest: Bar | null = null;
   for (const bar of bars) {
-    if (bar.weight > target) continue;
     if (type && bar.type !== type) continue;
+    if (bar.weight === weight) return bar; // exact match
+    if (bar.weight > target) continue;
     if (heaviest == null || bar.weight > heaviest.weight) heaviest = bar;
   }
 

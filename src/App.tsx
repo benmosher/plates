@@ -76,8 +76,10 @@ function Handle({ barLength }: { barLength: number }) {
 type State = {
   /** target weight */
   target?: number;
-  /** best match bar type */
+  /** bar type */
   barType?: string;
+  /** bar weight (if specified); null for best match */
+  barWeight?: number | null;
 
   /** percentage-based target */
   percentage?: number;
@@ -91,6 +93,7 @@ function getUrlState(): State {
   return {
     target: numbdfined(params.get("weight")),
     barType: params.get("bar") ?? undefined,
+    barWeight: numbdfined(params.get("barWeight")) ?? null,
     percentage: numbdfined(params.get("pct")),
     percentageBase: numbdfined(params.get("1rm")),
   };
@@ -100,6 +103,7 @@ function buildUrlHash(state: State): string {
   const params = new URLSearchParams();
   if (state.target != null) params.set("weight", String(state.target));
   if (state.barType) params.set("bar", state.barType);
+  if (state.barWeight != null) params.set("barWeight", String(state.barWeight));
 
   // only set pct if target not explicitly set
   if (state.percentage != null && state.target == null)
@@ -193,6 +197,10 @@ function stateReducer(state: State, newState: Partial<State>): State {
       : state.percentageBase;
   const barType = newState.barType ?? state.barType;
 
+  // don't coalesce barWeight; it may be intentionally being cleared
+  const barWeight =
+    newState.barWeight !== undefined ? newState.barWeight : state.barWeight;
+
   // if the target is being set directly, update percentage
   if ("target" in newState) {
     return {
@@ -203,6 +211,7 @@ function stateReducer(state: State, newState: Partial<State>): State {
           : undefined,
       percentageBase,
       barType,
+      barWeight,
     };
   }
 
@@ -214,15 +223,11 @@ function stateReducer(state: State, newState: Partial<State>): State {
       percentage: newState.percentage,
       percentageBase,
       barType,
+      barWeight,
     };
   }
 
-  if (percentageBase !== state.percentageBase || barType !== state.barType) {
-    return { ...state, percentageBase, barType };
-  }
-
-  // no changes prescribed
-  return state;
+  return { ...state, percentageBase, barType, barWeight };
 }
 
 function useUrlState() {
@@ -262,8 +267,10 @@ function useUrlState() {
 export default function App() {
   const { plates, bars, putPlate, putBar } = useMassStorage();
 
-  let [{ target, percentage, percentageBase, barType }, dispatchState] =
-    useUrlState();
+  let [
+    { target, percentage, percentageBase, barType, barWeight },
+    dispatchState,
+  ] = useUrlState();
 
   // default bar type
   if (!barType && bars[0]) {
@@ -285,10 +292,13 @@ export default function App() {
   const possibleWeights = useMemo(
     () =>
       determineWeightSpace(
-        bars.filter((b) => b.type === barType),
+        bars.filter(
+          (b) =>
+            b.type === barType && (barWeight == null || b.weight === barWeight)
+        ),
         validPlates
       ),
-    [bars, barType, validPlates]
+    [bars, barType, barWeight, validPlates]
   );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
@@ -302,8 +312,7 @@ export default function App() {
       possibleWeights
     );
   }
-  const activeBar = chooseBar(bars, target, barType);
-  const barWeight = activeBar?.weight;
+  const activeBar = chooseBar(bars, target, barType, barWeight);
   const determinedPlates = determinePlates(target, activeBar, validPlates);
   const validTarget = possibleWeights.includes(target ?? -1);
 
@@ -336,7 +345,9 @@ export default function App() {
       <section>
         <p>
           Bar:&nbsp;
-          <b>{activeBar ? `${activeBar.name} (${barWeight})` : "no bar!"}</b>
+          <b>
+            {activeBar ? `${activeBar.name} (${activeBar.weight})` : "no bar!"}
+          </b>
         </p>
         <p>
           Plates:&nbsp;
@@ -375,15 +386,38 @@ export default function App() {
               aria-invalid={!validTarget}
             />
             <select
-              value={barType}
+              value={JSON.stringify({ barType, barWeight })}
               aria-invalid={!validTarget}
-              onChange={(e) => dispatchState({ barType: e.target.value })}
+              onChange={(e) => {
+                dispatchState(JSON.parse(e.target.value));
+              }}
             >
-              {Array.from(barTypes).map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
+              <optgroup label="Best fit">
+                {Array.from(barTypes).map((type) => (
+                  <option
+                    key={type}
+                    value={JSON.stringify({
+                      barType: type,
+                      barWeight: null,
+                    })}
+                  >
+                    {type}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Specific bars">
+                {bars.map((bar) => (
+                  <option
+                    key={bar.idx}
+                    value={JSON.stringify({
+                      barType: bar.type,
+                      barWeight: bar.weight,
+                    })}
+                  >
+                    {bar.name} ({bar.weight})
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </fieldset>
           <label>
