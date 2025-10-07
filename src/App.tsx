@@ -5,7 +5,12 @@ import {
   determineWeightSpace,
 } from "./plate-math";
 import React, { useEffect, useMemo, useReducer, useState } from "react";
-import { useMassStorage, type Plate, type Bar } from "./plate-db";
+import {
+  useMassStorage,
+  type Plate,
+  type Bar,
+  type BarInput,
+} from "./plate-db";
 
 function numbdfined(value: string | null | undefined) {
   return value ? +value : undefined;
@@ -115,11 +120,15 @@ function buildUrlHash(state: State): string {
 }
 
 function BarEditor(props: {
-  bar: Bar;
-  putBar?: (bar: Bar) => void;
+  bar: Partial<Bar>;
+  putBar?: (bar: BarInput) => void;
+  deleteBar?: (idx: number) => void;
   barTypeDatalistId?: string;
 }) {
-  const [bar, setBar] = useState<Partial<Bar>>(props.bar);
+  const [bar, setBar] = useState(props.bar);
+  const { deleteBar } = props;
+  const { idx } = props.bar;
+
   const fieldSetter =
     (field: keyof Bar) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const value =
@@ -174,19 +183,64 @@ function BarEditor(props: {
           />
         </fieldset>
         <small>Weight / Type / Max Plate / Max Load</small>
-        <input
-          type="submit"
-          value="Save"
-          disabled={bar == props.bar || !bar.name || !bar.weight || !bar.type}
-          onClick={(e) => {
-            e.preventDefault();
-            if (props.putBar && bar.name && bar.weight && bar.type) {
-              props.putBar(bar as Bar);
-            }
-          }}
-        />
+        <fieldset className="grid">
+          <input
+            type="submit"
+            value="Save"
+            className="primary"
+            disabled={bar == props.bar || !bar.name || !bar.weight || !bar.type}
+            onClick={(e) => {
+              e.preventDefault();
+              if (props.putBar && bar.name && bar.weight && bar.type) {
+                props.putBar(bar as Bar);
+              }
+            }}
+          />
+
+          <DoubleClickConfirmButton
+            onClick={() => deleteBar!(idx!)}
+            disabled={!deleteBar || idx == null}
+          >
+            Delete
+          </DoubleClickConfirmButton>
+        </fieldset>
       </form>
     </article>
+  );
+}
+
+function DoubleClickConfirmButton(props: {
+  onClick: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!armed) return;
+    const handle = setTimeout(() => setArmed(false), 3000);
+    return () => clearTimeout(handle);
+  }, [armed]);
+  return (
+    <button
+      type="button"
+      className="secondary"
+      disabled={props.disabled}
+      onClick={() => {
+        if (armed) {
+          props.onClick();
+          setArmed(false);
+        } else {
+          setArmed(true);
+        }
+      }}
+      title={armed ? "Click again to confirm" : "Click twice to confirm"}
+      style={{
+        background: armed ? "#C52F21" : undefined,
+        color: armed ? "#F1F1F1" : undefined,
+      }}
+    >
+      {props.children}
+    </button>
   );
 }
 
@@ -265,7 +319,7 @@ function useUrlState() {
 }
 
 export default function App() {
-  const { plates, bars, putPlate, putBar } = useMassStorage();
+  const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
 
   let [
     { target, percentage, percentageBase, barType, barWeight },
@@ -490,9 +544,22 @@ export default function App() {
             key={bar.idx}
             bar={bar}
             putBar={putBar}
+            deleteBar={deleteBar}
             barTypeDatalistId="bar-type-options"
           />
         ))}
+        <BarEditor
+          key={Math.max(...bars.map((b) => b.idx ?? 0)) + 1}
+          bar={{
+            name: "(add new)",
+            type: "barbell",
+            weight: 0,
+            barLength: 500,
+            handleWidth: 200,
+          }}
+          putBar={putBar}
+          barTypeDatalistId="bar-type-options"
+        />
       </details>
       <details>
         <summary>Plates (pairs)</summary>

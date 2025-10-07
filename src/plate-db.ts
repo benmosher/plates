@@ -14,20 +14,13 @@ export interface Plate {
   color: string;
 }
 
-/**
- * Allow different types of bars
- * to auto-choose the correct one.
- * future: curl? hex? axel?
- */
-type BarType = "barbell" | "dumbbell";
-
 /** special variables for different bars */
 export interface Bar {
   /** unique key, auto-incrementing */
   idx: number;
 
   name: string;
-  type: BarType;
+  type: string;
   weight: number;
   sliderMinStep?: number;
 
@@ -39,7 +32,7 @@ export interface Bar {
   handleWidth: number;
 }
 
-type BarInput = Omit<Bar, "idx"> & { idx?: number };
+export type BarInput = Omit<Bar, "idx"> & { idx?: number };
 
 const INITIAL_BARS: Bar[] = (
   [
@@ -194,23 +187,39 @@ function putPlate(plate: Plate) {
   txn.commit();
 }
 
-function putBar(bar: Bar) {
+function putBar(bar: BarInput) {
+  if (db == null) {
+    throw new Error("database not initialized");
+  }
+
+  // write to the database
+  const txn = db.transaction("bars", "readwrite");
+  const store = txn.objectStore("bars");
+  const request = store.put(bar);
+  request.onsuccess = function () {
+    // in case this was an add, update the idx
+    const indexedBar: Bar = { ...bar, idx: this.result as number };
+    BAR_MAP.set(indexedBar.idx, indexedBar);
+    READ_VIEW = { ...READ_VIEW, bars: BAR_MAP };
+    _subscriptions.forEach((cb) => cb());
+  };
+  txn.commit();
+}
+
+function deleteBar(idx: number) {
   if (db == null) {
     throw new Error("database not initialized");
   }
 
   // update the in-memory map and view
-  BAR_MAP.set(bar.idx, bar);
-
+  BAR_MAP.delete(idx);
   READ_VIEW = { ...READ_VIEW, bars: BAR_MAP };
-
-  // notify subscribers
   _subscriptions.forEach((cb) => cb());
 
   // write to the database
   const txn = db.transaction("bars", "readwrite");
   const store = txn.objectStore("bars");
-  store.put(bar);
+  store.delete(idx);
   txn.commit();
 }
 
@@ -247,7 +256,8 @@ interface MassStorage {
   readonly bars: readonly Bar[];
 
   putPlate(plate: Plate): void;
-  putBar(bar: Bar): void;
+  putBar(bar: BarInput): void;
+  deleteBar(idx: number): void;
 }
 
 export function useMassStorage(): MassStorage {
@@ -268,7 +278,8 @@ export function useMassStorage(): MassStorage {
       bars: Array.from(store.bars.values()).toSorted((a, b) => a.idx - b.idx),
       putPlate,
       putBar,
+      deleteBar,
     }),
-    [store, putPlate, putBar]
+    [store, putPlate, putBar, deleteBar]
   );
 }
