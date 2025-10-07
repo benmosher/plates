@@ -80,27 +80,27 @@ function Handle({ barLength }: { barLength: number }) {
 
 type State = {
   /** target weight */
-  target?: number;
+  target?: number | null;
   /** bar type */
   barType?: string;
   /** bar weight (if specified); null for best match */
   barWeight?: number | null;
 
   /** percentage-based target */
-  percentage?: number;
+  percentage?: number | null;
   /** base weight (e.g. 1RM) */
-  percentageBase?: number;
+  percentageBase?: number | null;
 };
 
 function getUrlState(): State {
   // use hash as search
   const params = new URLSearchParams("?" + window.location.hash.slice(1));
   return {
-    target: numbdfined(params.get("weight")),
+    target: numbdfined(params.get("weight")) ?? null,
     barType: params.get("bar") ?? undefined,
     barWeight: numbdfined(params.get("barWeight")) ?? null,
-    percentage: numbdfined(params.get("pct")),
-    percentageBase: numbdfined(params.get("1rm")),
+    percentage: numbdfined(params.get("pct")) ?? null,
+    percentageBase: numbdfined(params.get("1rm")) ?? null,
   };
 }
 
@@ -273,7 +273,7 @@ function stateReducer(state: State, newState: Partial<State>): State {
   // so it is recomputed outside the reducer
   if ("percentage" in newState) {
     return {
-      target: undefined,
+      target: null,
       percentage: newState.percentage,
       percentageBase,
       barType,
@@ -361,10 +361,9 @@ export default function App() {
 
   // use percentage to determine target if not defined
   if (target == null && percentage != null && percentageBase != null) {
-    target = closestTarget(
-      (percentage * percentageBase) / 100,
-      possibleWeights
-    );
+    target =
+      closestTarget((percentage * percentageBase) / 100, possibleWeights) ??
+      Math.round((percentage * percentageBase) / 100);
   }
   const activeBar = chooseBar(bars, target, barType, barWeight);
   const determinedPlates = determinePlates(target, activeBar, validPlates);
@@ -430,7 +429,7 @@ export default function App() {
             <input
               id="target-number"
               type="number"
-              value={target}
+              value={target ?? ""}
               min={weightMin}
               max={weightMax}
               step={weightStep}
@@ -482,7 +481,7 @@ export default function App() {
               min={weightMin}
               max={weightMax}
               step={weightStep}
-              value={target}
+              value={target ?? ""}
               onChange={(e) =>
                 dispatchState({ target: numbdfined(e.target.value) })
               }
@@ -501,7 +500,7 @@ export default function App() {
               min={1}
               max={100}
               step={1}
-              value={percentage}
+              value={percentage ?? ""}
               placeholder="%"
               onChange={(e) =>
                 dispatchState({ percentage: numbdfined(e.target.value) })
@@ -510,7 +509,7 @@ export default function App() {
             <input
               type="number"
               placeholder="base (e.g. 1RM)"
-              value={percentageBase}
+              value={percentageBase ?? ""}
               onChange={(e) =>
                 dispatchState({ percentageBase: numbdfined(e.target.value) })
               }
@@ -521,7 +520,7 @@ export default function App() {
             min={1}
             max={100}
             step={1}
-            value={percentage}
+            value={percentage ?? ""}
             onChange={(e) =>
               dispatchState({ percentage: numbdfined(e.target.value) })
             }

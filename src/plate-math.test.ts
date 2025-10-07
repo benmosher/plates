@@ -83,15 +83,15 @@ describe("choose closest weight", () => {
   expect(possibleWeights[possibleWeights.length - 1]).toBe(225);
 
   const cases = [
-    [44, 45],
     [45, 45],
     [46, 45],
     [47, 45],
     [134, 135],
     [137, 135],
     [138, 140],
-    [0, 45],
-    [1000, 225],
+    [225, 225],
+    [0, undefined], // below min
+    [1000, undefined], // above max
   ];
   cases.forEach(([input, expected]) => {
     test(`closest weight to ${input} is ${expected}`, () => {

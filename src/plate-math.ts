@@ -1,7 +1,7 @@
 export function determinePlates<
   Plate extends { weight: number; count: number }
 >(
-  target: number | undefined,
+  target: number | null | undefined,
   handle: { weight: number; plateThreshold?: number } | null,
   plates: readonly Plate[]
 ): readonly Plate[] {
@@ -131,7 +131,7 @@ export function chooseBar<
   Bar extends { type: Type; weight: number }
 >(
   bars: readonly Bar[],
-  target: number | undefined,
+  target: number | null | undefined,
   type?: Type,
   weight?: number | null
 ): Bar | null {
@@ -152,6 +152,10 @@ export function chooseBar<
 export function closestTarget(rawTarget: number, possibleWeights: number[]) {
   // can't do it if no weights
   if (possibleWeights.length === 0) return undefined;
+
+  // return undefined if outside the range; this allows better feedback
+  if (rawTarget < possibleWeights[0]) return undefined;
+  if (rawTarget > possibleWeights[possibleWeights.length - 1]) return undefined;
 
   // binary search for closest weight (possibleWeights is sorted ascending)
   let low = 0,
