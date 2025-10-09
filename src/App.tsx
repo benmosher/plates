@@ -190,6 +190,7 @@ function useUrlState(barTypes: Set<string>) {
 
 export default function App() {
   const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
+  const maxes = [355, 230, 420];
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
   let [
@@ -376,9 +377,9 @@ export default function App() {
               }
             />
             <datalist id="1rm-options">
-              <option value="355" />
-              <option value="230" />
-              <option value="420" />
+              {maxes.map((max) => (
+                <option key={max} value={max} />
+              ))}
             </datalist>
             <input
               type="number"
@@ -402,6 +403,22 @@ export default function App() {
           />
           <small>use slider to tweak percentage</small>
         </form>
+        <details open>
+          <summary>Maxes</summary>
+          <form>
+            {maxes.map((m, i) => (
+              <fieldset role="group">
+                <input key={i} value={m} type="number" />
+                <button
+                  type="button"
+                  onClick={() => dispatchState({ percentageBase: m })}
+                >
+                  Use
+                </button>
+              </fieldset>
+            ))}
+          </form>
+        </details>
       </details>
 
       <details>

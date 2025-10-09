@@ -86,6 +86,13 @@ const INITIAL_PLATES: readonly Plate[] = [
   { weight: 55, thicknessMm: 37, diameterMm: 225, color: "#EE402E", count: 0 },
 ];
 
+/** my squatober 2k25 maxes */
+const INITIAL_MAXES = [
+  { weight: 355, label: "Squat" },
+  { weight: 230, label: "Bench" },
+  { weight: 420, label: "Deadlift" },
+];
+
 /**
  * Write the default plates to the database at startup, if
  * it is empty.
@@ -118,7 +125,9 @@ function initializeStore<T>(
 /** Resolves when database is available and initialized */
 function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("mass", 2); // v2: plates + bars
+    const request = indexedDB.open("mass", 3); // v2: plates + bars + maxes
+
+    let initializeMaxes = false;
 
     // capture the database
     request.onsuccess = function () {
@@ -156,6 +165,10 @@ function initializeDatabase(): Promise<void> {
       }
       if (!db.objectStoreNames.contains("bars")) {
         db.createObjectStore("bars", { keyPath: "idx", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains("maxes")) {
+        db.createObjectStore("maxes", { keyPath: "label" });
+        initializeMaxes = true;
       }
     };
 
