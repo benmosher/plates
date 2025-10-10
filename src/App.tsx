@@ -126,10 +126,8 @@ function buildUrlHash(state: State): string {
 }
 
 function stateReducer(state: State, newState: Partial<State>): State {
-  const percentageBase =
-    "percentageBase" in newState
-      ? newState.percentageBase
-      : state.percentageBase;
+  const percentageBase = newState.percentageBase ?? state.percentageBase;
+  const percentage = newState.percentage ?? state.percentage;
   const barType = newState.barType ?? state.barType;
 
   // don't coalesce barWeight; it may be intentionally being cleared
@@ -150,12 +148,12 @@ function stateReducer(state: State, newState: Partial<State>): State {
     };
   }
 
-  // if the percentage is being set, clear target
+  // if the percentage or base is being set, clear target
   // so it is recomputed outside the reducer
-  if ("percentage" in newState) {
+  if ("percentage" in newState || "percentageBase" in newState) {
     return {
       target: null,
-      percentage: newState.percentage,
+      percentage,
       percentageBase,
       barType,
       barWeight,
