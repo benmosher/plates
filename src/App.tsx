@@ -482,6 +482,8 @@ function BarComputer({
   );
 }
 
+const PLATE_COUNT_MAX = 20; // arbitrary max to avoid overloading the plate space computation
+
 const Config = memo(function Config() {
   const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
   const barTypes = useMemo(
@@ -536,6 +538,7 @@ const Config = memo(function Config() {
                 type="number"
                 step={1}
                 min={0}
+                max={PLATE_COUNT_MAX}
                 value={plate.count}
                 onChange={(e) => {
                   // todo: undefined plate count?
@@ -553,6 +556,7 @@ const Config = memo(function Config() {
               </button>
               <button
                 type="button"
+                disabled={plate.count != null && plate.count >= PLATE_COUNT_MAX}
                 onClick={() =>
                   putPlate({ ...plate, count: (plate.count ?? 0) + 1 })
                 }

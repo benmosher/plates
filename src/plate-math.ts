@@ -41,27 +41,20 @@ export function determinePlates<
  * @param plates - the available plates _for one side_
  */
 export function determinePlateCombos(
-  plates: readonly { weight: number; count: number }[],
-  pivot: number = 0,
-  usedCount: number = 0
+  plates: readonly { weight: number; count: number }[]
 ): number[] {
-  // base case
-  if (pivot >= plates.length) return [0];
-
-  // work down from the largest to smallest
-  const plate = plates[plates.length - 1 - pivot];
-
-  if (plate.count < usedCount) throw new Error("usedCount exceeds plate count");
-  if (plate.count == usedCount)
-    return determinePlateCombos(plates, pivot + 1, 0);
-
-  const loaded = 2 * plate.weight;
-
-  const loads = determinePlateCombos(plates, pivot, usedCount + 1);
-  return _merge(
-    loads,
-    loads.map((l) => l + loaded)
-  );
+  let loads: number[] = [0];
+  for (let i = 0; i < plates.length; i++) {
+    const plate = plates[i];
+    const loaded = 2 * plate.weight;
+    for (let usedCount = 0; usedCount < plate.count; usedCount++) {
+      loads = _merge(
+        loads,
+        loads.map((l) => l + loaded)
+      );
+    }
+  }
+  return loads;
 }
 
 export function determineWeightSpace(
