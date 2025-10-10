@@ -34,7 +34,7 @@ export interface Bar {
 
 export type BarInput = Omit<Bar, "idx"> & { idx?: number };
 
-const INITIAL_BARS: Bar[] = (
+export const INITIAL_BARS: Bar[] = (
   [
     {
       name: "Olympic barbell",
@@ -70,7 +70,7 @@ const INITIAL_BARS: Bar[] = (
   ] as BarInput[]
 ).map((b, i) => ({ ...b, idx: i }));
 
-const INITIAL_PLATES: readonly Plate[] = [
+export const INITIAL_PLATES: readonly Plate[] = [
   { weight: 0.25, thicknessMm: 8, diameterMm: 57, color: "#62D926", count: 1 },
   { weight: 0.5, thicknessMm: 9, diameterMm: 60, color: "#FFBF00", count: 1 },
   { weight: 0.75, thicknessMm: 10, diameterMm: 60, color: "#3C71F7", count: 1 },
@@ -311,12 +311,13 @@ interface MassStorage {
 }
 
 export function useMassStorage(): MassStorage {
-  const store = useSyncExternalStore(_subscribe, _getSnapshot);
-
   if (dbPromise == null) {
     dbPromise = initializeDatabase();
-    use(dbPromise);
   }
+
+  use(dbPromise);
+
+  const store = useSyncExternalStore(_subscribe, _getSnapshot);
 
   return useMemo(
     () => ({

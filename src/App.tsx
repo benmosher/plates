@@ -12,7 +12,13 @@ import {
   useMemo,
   useReducer,
 } from "react";
-import { Bar, useMassStorage, type Plate } from "./plate-db";
+import {
+  useMassStorage,
+  Bar,
+  Plate,
+  INITIAL_BARS,
+  INITIAL_PLATES,
+} from "./plate-db";
 import BarEditor from "./BarEditor";
 import { numbdfined } from "./utils";
 
@@ -226,8 +232,8 @@ export default function App() {
       <Suspense
         fallback={
           <BarComputer
-            plates={[]}
-            bars={[]}
+            plates={INITIAL_PLATES}
+            bars={INITIAL_BARS}
             maxes={[
               ["Squat", 355],
               ["Bench", 230],
@@ -247,7 +253,6 @@ export default function App() {
 
 function LoadedBarComputer() {
   const { plates, bars, maxes } = useMassStorage();
-  console.log("plates", plates, "bars", bars, "maxes", maxes);
   return <BarComputer plates={plates} bars={bars} maxes={maxes} />;
 }
 
