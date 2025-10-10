@@ -126,8 +126,12 @@ function buildUrlHash(state: State): string {
 }
 
 function stateReducer(state: State, newState: Partial<State>): State {
-  const percentageBase = newState.percentageBase ?? state.percentageBase;
-  const percentage = newState.percentage ?? state.percentage;
+  const percentageBase =
+    "percentageBase" in newState
+      ? newState.percentageBase
+      : state.percentageBase;
+  const percentage =
+    "percentage" in newState ? newState.percentage : state.percentage;
   const barType = newState.barType ?? state.barType;
 
   // don't coalesce barWeight; it may be intentionally being cleared
