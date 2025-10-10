@@ -4,12 +4,12 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import { useEffect, useMemo, useReducer } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useReducer } from "react";
 import { useMassStorage, type Plate } from "./plate-db";
 import BarEditor from "./BarEditor";
 import { numbdfined } from "./utils";
 
-function DisplayPlate({
+const DisplayPlate = memo(function DisplayPlate({
   thicknessMm,
   diameterMm,
   color,
@@ -28,31 +28,29 @@ function DisplayPlate({
       &nbsp;
     </div>
   );
-}
+});
 
 const HANDLE_COLOR = "#A4ACBA";
-function Nubbin() {
-  return (
-    <div
-      style={{
-        width: 8,
-        height: 30,
-        margin: "0 -4px",
-        zIndex: -1,
-        overflow: "visible",
-        background: HANDLE_COLOR,
-        border: "1px solid",
-        borderRadius: 2,
-        flexShrink: 0,
-      }}
-    />
-  );
-}
+const NUBBIN = (
+  <div
+    style={{
+      width: 8,
+      height: 30,
+      margin: "0 -4px",
+      zIndex: -1,
+      overflow: "visible",
+      background: HANDLE_COLOR,
+      border: "1px solid",
+      borderRadius: 2,
+      flexShrink: 0,
+    }}
+  />
+);
 
-function Handle({ barLength }: { barLength: number }) {
+const Handle = memo(function Handle({ barLength }: { barLength: number }) {
   return (
     <>
-      <Nubbin />
+      {NUBBIN}
       <div
         style={{
           border: "1px solid",
@@ -66,10 +64,10 @@ function Handle({ barLength }: { barLength: number }) {
           zIndex: -2,
         }}
       />
-      <Nubbin />
+      {NUBBIN}
     </>
   );
-}
+});
 
 type State = {
   /** target weight */
@@ -188,8 +186,28 @@ function useUrlState(barTypes: Set<string>) {
   return reducer;
 }
 
+const BarView = memo(function BarView(props: {
+  determinedPlates: readonly (Plate & { count: number })[];
+  barLength?: number;
+}) {
+  const stack = props.determinedPlates.flatMap((plate) =>
+    Array.from({ length: plate.count }, (_, j) => (
+      <DisplayPlate key={`${plate.weight}-${j}`} {...plate} />
+    ))
+  );
+  return (
+    <>
+      {NUBBIN}
+      {stack.toReversed()}
+      <Handle barLength={props.barLength ?? 500} />
+      {stack}
+      {NUBBIN}
+    </>
+  );
+});
+
 export default function App() {
-  const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
+  const { plates, bars } = useMassStorage();
   const maxes = [355, 230, 420];
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
@@ -235,9 +253,14 @@ export default function App() {
       closestTarget((percentage * percentageBase) / 100, possibleWeights) ??
       Math.round((percentage * percentageBase) / 100);
   }
-  const activeBar = chooseBar(bars, target, barType, barWeight);
-  const determinedPlates = determinePlates(target, activeBar, validPlates);
-  const validTarget = possibleWeights.includes(target ?? -1);
+
+  const deferredTarget = useDeferredValue(target);
+  const activeBar = chooseBar(bars, deferredTarget, barType, barWeight);
+  const determinedPlates = useMemo(
+    () => determinePlates(deferredTarget, activeBar, validPlates),
+    [deferredTarget, activeBar, validPlates]
+  );
+  const validTarget = possibleWeights.includes(deferredTarget ?? -1);
 
   return (
     <>
@@ -249,21 +272,10 @@ export default function App() {
           justifyContent: "center",
         }}
       >
-        <Nubbin />
-        {determinedPlates
-          .toReversed()
-          .flatMap((plate) =>
-            Array.from({ length: plate.count }, (_, j) => (
-              <DisplayPlate key={`left-${plate.weight}-${j}`} {...plate} />
-            ))
-          )}
-        <Handle barLength={activeBar?.barLength ?? bars[0]?.barLength} />
-        {determinedPlates.flatMap((plate) =>
-          Array.from({ length: plate.count }, (_, j) => (
-            <DisplayPlate key={`right-${plate.weight}-${j}`} {...plate} />
-          ))
-        )}
-        <Nubbin />
+        <BarView
+          determinedPlates={determinedPlates}
+          barLength={activeBar?.barLength ?? 500}
+        />
       </section>
       <section>
         <p>
@@ -420,7 +432,19 @@ export default function App() {
           </form>
         </details>
       </details>
+      <Config />
+    </>
+  );
+}
 
+const Config = memo(function Config() {
+  const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
+  const barTypes = useMemo(
+    () => bars.reduce((set, b) => set.add(b.type), new Set<string>()),
+    [bars]
+  );
+  return (
+    <>
       <details>
         <summary>Bars</summary>
         <datalist id="bar-type-options">
@@ -522,4 +546,4 @@ export default function App() {
       </details>
     </>
   );
-}
+});
