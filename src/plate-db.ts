@@ -34,7 +34,7 @@ export interface Bar {
 
 export type BarInput = Omit<Bar, "idx"> & { idx?: number };
 
-const INITIAL_BARS: Bar[] = (
+export const INITIAL_BARS: Bar[] = (
   [
     {
       name: "Olympic barbell",
@@ -70,7 +70,7 @@ const INITIAL_BARS: Bar[] = (
   ] as BarInput[]
 ).map((b, i) => ({ ...b, idx: i }));
 
-const INITIAL_PLATES: readonly Plate[] = [
+export const INITIAL_PLATES: readonly Plate[] = [
   { weight: 0.25, thicknessMm: 8, diameterMm: 57, color: "#62D926", count: 1 },
   { weight: 0.5, thicknessMm: 9, diameterMm: 60, color: "#FFBF00", count: 1 },
   { weight: 0.75, thicknessMm: 10, diameterMm: 60, color: "#3C71F7", count: 1 },
@@ -84,6 +84,13 @@ const INITIAL_PLATES: readonly Plate[] = [
   { weight: 35, thicknessMm: 27, diameterMm: 225, color: "#FFBF00", count: 1 },
   { weight: 45, thicknessMm: 35, diameterMm: 225, color: "#3C71F7", count: 3 },
   { weight: 55, thicknessMm: 37, diameterMm: 225, color: "#EE402E", count: 0 },
+];
+
+/** my squatober 2k25 maxes */
+const INITIAL_MAXES = [
+  { weight: 355, label: "Squat" },
+  { weight: 230, label: "Bench" },
+  { weight: 420, label: "Deadlift" },
 ];
 
 /**
@@ -118,7 +125,9 @@ function initializeStore<T>(
 /** Resolves when database is available and initialized */
 function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("mass", 2); // v2: plates + bars
+    const request = indexedDB.open("mass", 3); // v2: plates + bars + maxes
+
+    let initializeMaxes = false;
 
     // capture the database
     request.onsuccess = function () {
@@ -141,10 +150,43 @@ function initializeDatabase(): Promise<void> {
           }
         }
       );
-      Promise.all([initPlates, initBars]).then(() => {
-        txn.oncomplete = () => resolve();
-        txn.commit();
-      }, reject);
+
+      const initMaxes = new Promise<void>((resolveMaxes, rejectMaxes) => {
+        if (initializeMaxes) {
+          try {
+            const maxTxn = this.result.transaction("maxes", "readwrite");
+            const maxStore = maxTxn.objectStore("maxes");
+            for (const max of INITIAL_MAXES) {
+              maxStore.add(max);
+              MAX_MAP.set(max.label, max.weight);
+            }
+          } catch (e) {
+            rejectMaxes(e);
+            return;
+          }
+        } else {
+          const maxTxn = this.result.transaction("maxes", "readonly");
+          const maxStore = maxTxn.objectStore("maxes");
+          const getAllRequest = maxStore.getAll();
+          getAllRequest.onsuccess = function () {
+            for (const max of this.result as {
+              label: string;
+              weight: number;
+            }[]) {
+              MAX_MAP.set(max.label, max.weight);
+            }
+            resolveMaxes();
+          };
+          getAllRequest.onerror = function () {
+            rejectMaxes(this.error);
+          };
+        }
+      });
+
+      Promise.all([initPlates, initBars, initMaxes]).then(
+        () => resolve(),
+        reject
+      );
     };
 
     /** initialize the data */
@@ -156,6 +198,10 @@ function initializeDatabase(): Promise<void> {
       }
       if (!db.objectStoreNames.contains("bars")) {
         db.createObjectStore("bars", { keyPath: "idx", autoIncrement: true });
+      }
+      if (!db.objectStoreNames.contains("maxes")) {
+        db.createObjectStore("maxes", { keyPath: "label" });
+        initializeMaxes = true;
       }
     };
 
@@ -235,10 +281,13 @@ const PLATE_MAP = new Map<number, Plate>();
 /** bars have a unique key number */
 const BAR_MAP = new Map<number, Bar>();
 
+const MAX_MAP = new Map<string, number>();
+
 /** for the snapshot */
 let READ_VIEW = {
   plates: PLATE_MAP,
   bars: BAR_MAP,
+  maxes: MAX_MAP,
 };
 
 /** callbacks to fire on updates */
@@ -254,6 +303,7 @@ function _getSnapshot() {
 interface MassStorage {
   readonly plates: readonly Plate[];
   readonly bars: readonly Bar[];
+  readonly maxes: readonly [string, number][];
 
   putPlate(plate: Plate): void;
   putBar(bar: BarInput): void;
@@ -265,7 +315,6 @@ export function useMassStorage(): MassStorage {
     dbPromise = initializeDatabase();
   }
 
-  // suspend while db is initializing
   use(dbPromise);
 
   const store = useSyncExternalStore(_subscribe, _getSnapshot);
@@ -276,6 +325,7 @@ export function useMassStorage(): MassStorage {
         (a, b) => a.weight - b.weight
       ),
       bars: Array.from(store.bars.values()).toSorted((a, b) => a.idx - b.idx),
+      maxes: Array.from(store.maxes.entries()),
       putPlate,
       putBar,
       deleteBar,

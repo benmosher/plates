@@ -4,12 +4,25 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import { useEffect, useMemo, useReducer } from "react";
-import { useMassStorage, type Plate } from "./plate-db";
+import {
+  memo,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useReducer,
+} from "react";
+import {
+  useMassStorage,
+  Bar,
+  Plate,
+  INITIAL_BARS,
+  INITIAL_PLATES,
+} from "./plate-db";
 import BarEditor from "./BarEditor";
 import { numbdfined } from "./utils";
 
-function DisplayPlate({
+const DisplayPlate = memo(function DisplayPlate({
   thicknessMm,
   diameterMm,
   color,
@@ -28,31 +41,29 @@ function DisplayPlate({
       &nbsp;
     </div>
   );
-}
+});
 
 const HANDLE_COLOR = "#A4ACBA";
-function Nubbin() {
-  return (
-    <div
-      style={{
-        width: 8,
-        height: 30,
-        margin: "0 -4px",
-        zIndex: -1,
-        overflow: "visible",
-        background: HANDLE_COLOR,
-        border: "1px solid",
-        borderRadius: 2,
-        flexShrink: 0,
-      }}
-    />
-  );
-}
+const NUBBIN = (
+  <div
+    style={{
+      width: 8,
+      height: 30,
+      margin: "0 -4px",
+      zIndex: -1,
+      overflow: "visible",
+      background: HANDLE_COLOR,
+      border: "1px solid",
+      borderRadius: 2,
+      flexShrink: 0,
+    }}
+  />
+);
 
-function Handle({ barLength }: { barLength: number }) {
+const Handle = memo(function Handle({ barLength }: { barLength: number }) {
   return (
     <>
-      <Nubbin />
+      {NUBBIN}
       <div
         style={{
           border: "1px solid",
@@ -66,10 +77,10 @@ function Handle({ barLength }: { barLength: number }) {
           zIndex: -2,
         }}
       />
-      <Nubbin />
+      {NUBBIN}
     </>
   );
-}
+});
 
 type State = {
   /** target weight */
@@ -115,10 +126,8 @@ function buildUrlHash(state: State): string {
 }
 
 function stateReducer(state: State, newState: Partial<State>): State {
-  const percentageBase =
-    "percentageBase" in newState
-      ? newState.percentageBase
-      : state.percentageBase;
+  const percentageBase = newState.percentageBase ?? state.percentageBase;
+  const percentage = newState.percentage ?? state.percentage;
   const barType = newState.barType ?? state.barType;
 
   // don't coalesce barWeight; it may be intentionally being cleared
@@ -139,12 +148,12 @@ function stateReducer(state: State, newState: Partial<State>): State {
     };
   }
 
-  // if the percentage is being set, clear target
+  // if the percentage or base is being set, clear target
   // so it is recomputed outside the reducer
-  if ("percentage" in newState) {
+  if ("percentage" in newState || "percentageBase" in newState) {
     return {
       target: null,
-      percentage: newState.percentage,
+      percentage,
       percentageBase,
       barType,
       barWeight,
@@ -188,8 +197,72 @@ function useUrlState(barTypes: Set<string>) {
   return reducer;
 }
 
+const BarView = memo(function BarView(props: {
+  determinedPlates: readonly (Plate & { count: number })[];
+  barLength?: number;
+}) {
+  const stack = props.determinedPlates.flatMap((plate) =>
+    Array.from({ length: plate.count }, (_, j) => (
+      <DisplayPlate key={`${plate.weight}-${j}`} {...plate} />
+    ))
+  );
+  return (
+    <section
+      style={{
+        height: 245,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {NUBBIN}
+      {stack.toReversed()}
+      <Handle barLength={props.barLength ?? 500} />
+      {stack}
+      {NUBBIN}
+    </section>
+  );
+});
+
 export default function App() {
-  const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
+  return (
+    <>
+      <Suspense
+        fallback={
+          <BarComputer
+            plates={INITIAL_PLATES}
+            bars={INITIAL_BARS}
+            maxes={[
+              ["Squat", 355],
+              ["Bench", 230],
+              ["Deadlift", 420],
+            ]}
+          />
+        }
+      >
+        <LoadedBarComputer />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Config />
+      </Suspense>
+    </>
+  );
+}
+
+function LoadedBarComputer() {
+  const { plates, bars, maxes } = useMassStorage();
+  return <BarComputer plates={plates} bars={bars} maxes={maxes} />;
+}
+
+function BarComputer({
+  plates,
+  bars,
+  maxes,
+}: {
+  plates: readonly Plate[];
+  bars: readonly Bar[];
+  maxes: readonly [string, number][];
+}) {
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
   let [
@@ -234,36 +307,21 @@ export default function App() {
       closestTarget((percentage * percentageBase) / 100, possibleWeights) ??
       Math.round((percentage * percentageBase) / 100);
   }
-  const activeBar = chooseBar(bars, target, barType, barWeight);
-  const determinedPlates = determinePlates(target, activeBar, validPlates);
-  const validTarget = possibleWeights.includes(target ?? -1);
+
+  const deferredTarget = useDeferredValue(target);
+  const activeBar = chooseBar(bars, deferredTarget, barType, barWeight);
+  const determinedPlates = useMemo(
+    () => determinePlates(deferredTarget, activeBar, validPlates),
+    [deferredTarget, activeBar, validPlates]
+  );
+  const validTarget = possibleWeights.includes(deferredTarget ?? -1);
 
   return (
     <>
-      <section
-        style={{
-          height: Math.max(...validPlates.map((p) => p.diameterMm)) + 20,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Nubbin />
-        {determinedPlates
-          .toReversed()
-          .flatMap((plate) =>
-            Array.from({ length: plate.count }, (_, j) => (
-              <DisplayPlate key={`left-${plate.weight}-${j}`} {...plate} />
-            ))
-          )}
-        <Handle barLength={activeBar?.barLength ?? bars[0]?.barLength} />
-        {determinedPlates.flatMap((plate) =>
-          Array.from({ length: plate.count }, (_, j) => (
-            <DisplayPlate key={`right-${plate.weight}-${j}`} {...plate} />
-          ))
-        )}
-        <Nubbin />
-      </section>
+      <BarView
+        determinedPlates={determinedPlates}
+        barLength={activeBar?.barLength ?? 500}
+      />
       <section>
         <p>
           Bar:&nbsp;
@@ -376,14 +434,15 @@ export default function App() {
               }
             />
             <datalist id="1rm-options">
-              <option value="355" />
-              <option value="230" />
-              <option value="420" />
+              {maxes.map(([label, max]) => (
+                <option key={label} value={max} />
+              ))}
             </datalist>
             <input
               type="number"
               placeholder="base (e.g. 1RM)"
               value={percentageBase ?? ""}
+              min={0}
               list="1rm-options"
               onChange={(e) =>
                 dispatchState({ percentageBase: numbdfined(e.target.value) })
@@ -402,8 +461,35 @@ export default function App() {
           />
           <small>use slider to tweak percentage</small>
         </form>
+        <details open>
+          <summary>Maxes</summary>
+          <form>
+            {maxes.map(([label, max]) => (
+              <fieldset key={label} role="group">
+                <input value={max} type="number" readOnly />
+                <button
+                  type="button"
+                  onClick={() => dispatchState({ percentageBase: max })}
+                >
+                  Use
+                </button>
+              </fieldset>
+            ))}
+          </form>
+        </details>
       </details>
+    </>
+  );
+}
 
+const Config = memo(function Config() {
+  const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
+  const barTypes = useMemo(
+    () => bars.reduce((set, b) => set.add(b.type), new Set<string>()),
+    [bars]
+  );
+  return (
+    <>
       <details>
         <summary>Bars</summary>
         <datalist id="bar-type-options">
@@ -505,4 +591,4 @@ export default function App() {
       </details>
     </>
   );
-}
+});
