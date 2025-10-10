@@ -326,30 +326,6 @@ function BarComputer({
 
   return (
     <>
-      <BarView
-        determinedPlates={determinedPlates}
-        barLength={activeBar?.barLength ?? 500}
-      />
-      <section>
-        <p>
-          Bar:&nbsp;
-          <b>
-            {activeBar ? `${activeBar.name} (${activeBar.weight})` : "no bar!"}
-          </b>
-        </p>
-        <p>
-          Plates:&nbsp;
-          <b>
-            {validTarget
-              ? determinedPlates
-                  .map((p) =>
-                    p.count > 1 ? `${p.weight}x${p.count}` : p.weight
-                  )
-                  .join(", ") || "(empty)"
-              : "No valid plate combination!"}
-          </b>
-        </p>
-      </section>
       <form>
         <datalist id="target-options">
           {possibleWeights?.map((v) => (
@@ -425,6 +401,30 @@ function BarComputer({
           </label>
         </fieldset>
       </form>
+      <BarView
+        determinedPlates={determinedPlates}
+        barLength={activeBar?.barLength ?? 500}
+      />
+      <section>
+        <p>
+          Bar:&nbsp;
+          <b>
+            {activeBar ? `${activeBar.name} (${activeBar.weight})` : "no bar!"}
+          </b>
+        </p>
+        <p>
+          Plates:&nbsp;
+          <b>
+            {validTarget
+              ? determinedPlates
+                  .map((p) =>
+                    p.count > 1 ? `${p.weight}x${p.count}` : p.weight
+                  )
+                  .join(", ") || "(empty)"
+              : "No valid plate combination!"}
+          </b>
+        </p>
+      </section>
 
       <details>
         <summary>Adjust weight by percentage</summary>
