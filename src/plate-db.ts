@@ -150,10 +150,43 @@ function initializeDatabase(): Promise<void> {
           }
         }
       );
-      Promise.all([initPlates, initBars]).then(() => {
-        txn.oncomplete = () => resolve();
-        txn.commit();
-      }, reject);
+
+      const initMaxes = new Promise<void>((resolveMaxes, rejectMaxes) => {
+        if (initializeMaxes) {
+          try {
+            const maxTxn = this.result.transaction("maxes", "readwrite");
+            const maxStore = maxTxn.objectStore("maxes");
+            for (const max of INITIAL_MAXES) {
+              maxStore.add(max);
+              MAX_MAP.set(max.label, max.weight);
+            }
+          } catch (e) {
+            rejectMaxes(e);
+            return;
+          }
+        } else {
+          const maxTxn = this.result.transaction("maxes", "readonly");
+          const maxStore = maxTxn.objectStore("maxes");
+          const getAllRequest = maxStore.getAll();
+          getAllRequest.onsuccess = function () {
+            for (const max of this.result as {
+              label: string;
+              weight: number;
+            }[]) {
+              MAX_MAP.set(max.label, max.weight);
+            }
+            resolveMaxes();
+          };
+          getAllRequest.onerror = function () {
+            rejectMaxes(this.error);
+          };
+        }
+      });
+
+      Promise.all([initPlates, initBars, initMaxes]).then(
+        () => resolve(),
+        reject
+      );
     };
 
     /** initialize the data */
@@ -248,10 +281,13 @@ const PLATE_MAP = new Map<number, Plate>();
 /** bars have a unique key number */
 const BAR_MAP = new Map<number, Bar>();
 
+const MAX_MAP = new Map<string, number>();
+
 /** for the snapshot */
 let READ_VIEW = {
   plates: PLATE_MAP,
   bars: BAR_MAP,
+  maxes: MAX_MAP,
 };
 
 /** callbacks to fire on updates */
@@ -267,6 +303,7 @@ function _getSnapshot() {
 interface MassStorage {
   readonly plates: readonly Plate[];
   readonly bars: readonly Bar[];
+  readonly maxes: readonly [string, number][];
 
   putPlate(plate: Plate): void;
   putBar(bar: BarInput): void;
@@ -274,14 +311,12 @@ interface MassStorage {
 }
 
 export function useMassStorage(): MassStorage {
+  const store = useSyncExternalStore(_subscribe, _getSnapshot);
+
   if (dbPromise == null) {
     dbPromise = initializeDatabase();
+    use(dbPromise);
   }
-
-  // suspend while db is initializing
-  use(dbPromise);
-
-  const store = useSyncExternalStore(_subscribe, _getSnapshot);
 
   return useMemo(
     () => ({
@@ -289,6 +324,7 @@ export function useMassStorage(): MassStorage {
         (a, b) => a.weight - b.weight
       ),
       bars: Array.from(store.bars.values()).toSorted((a, b) => a.idx - b.idx),
+      maxes: Array.from(store.maxes.entries()),
       putPlate,
       putBar,
       deleteBar,

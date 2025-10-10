@@ -203,20 +203,39 @@ const BarView = memo(function BarView(props: {
     ))
   );
   return (
-    <>
+    <section
+      style={{
+        height: 245,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       {NUBBIN}
       {stack.toReversed()}
       <Handle barLength={props.barLength ?? 500} />
       {stack}
       {NUBBIN}
-    </>
+    </section>
   );
 });
 
 export default function App() {
   return (
     <>
-      <Suspense fallback={<BarComputer plates={[]} bars={[]} />}>
+      <Suspense
+        fallback={
+          <BarComputer
+            plates={[]}
+            bars={[]}
+            maxes={[
+              ["Squat", 355],
+              ["Bench", 230],
+              ["Deadlift", 420],
+            ]}
+          />
+        }
+      >
         <LoadedBarComputer />
       </Suspense>
       <Suspense fallback={null}>
@@ -227,18 +246,20 @@ export default function App() {
 }
 
 function LoadedBarComputer() {
-  const { plates, bars } = useMassStorage();
-  return <BarComputer plates={plates} bars={bars} />;
+  const { plates, bars, maxes } = useMassStorage();
+  console.log("plates", plates, "bars", bars, "maxes", maxes);
+  return <BarComputer plates={plates} bars={bars} maxes={maxes} />;
 }
 
 function BarComputer({
   plates,
   bars,
+  maxes,
 }: {
   plates: readonly Plate[];
   bars: readonly Bar[];
+  maxes: readonly [string, number][];
 }) {
-  const maxes = [355, 230, 420];
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
   let [
@@ -294,20 +315,10 @@ function BarComputer({
 
   return (
     <>
-      <section
-        style={{
-          height: Math.max(...validPlates.map((p) => p.diameterMm)) + 20,
-          minHeight: 245,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <BarView
-          determinedPlates={determinedPlates}
-          barLength={activeBar?.barLength ?? 500}
-        />
-      </section>
+      <BarView
+        determinedPlates={determinedPlates}
+        barLength={activeBar?.barLength ?? 500}
+      />
       <section>
         <p>
           Bar:&nbsp;
@@ -420,14 +431,15 @@ function BarComputer({
               }
             />
             <datalist id="1rm-options">
-              {maxes.map((max) => (
-                <option key={max} value={max} />
+              {maxes.map(([label, max]) => (
+                <option key={label} value={max} />
               ))}
             </datalist>
             <input
               type="number"
               placeholder="base (e.g. 1RM)"
               value={percentageBase ?? ""}
+              min={0}
               list="1rm-options"
               onChange={(e) =>
                 dispatchState({ percentageBase: numbdfined(e.target.value) })
@@ -449,12 +461,12 @@ function BarComputer({
         <details open>
           <summary>Maxes</summary>
           <form>
-            {maxes.map((m, i) => (
-              <fieldset role="group">
-                <input key={i} value={m} type="number" />
+            {maxes.map(([label, max]) => (
+              <fieldset key={label} role="group">
+                <input value={max} type="number" readOnly />
                 <button
                   type="button"
-                  onClick={() => dispatchState({ percentageBase: m })}
+                  onClick={() => dispatchState({ percentageBase: max })}
                 >
                   Use
                 </button>
