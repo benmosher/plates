@@ -320,7 +320,7 @@ function _getSnapshot() {
 interface MassStorage {
   readonly plates: readonly Plate[];
   readonly bars: readonly Bar[];
-  readonly maxes: readonly [string, number][];
+  readonly maxes: readonly [string, number | null][];
 
   putPlate(plate: Plate): void;
   putBar(bar: BarInput): void;
