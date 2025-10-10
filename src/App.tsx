@@ -4,8 +4,15 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import { memo, useDeferredValue, useEffect, useMemo, useReducer } from "react";
-import { useMassStorage, type Plate } from "./plate-db";
+import {
+  memo,
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useReducer,
+} from "react";
+import { Bar, useMassStorage, type Plate } from "./plate-db";
 import BarEditor from "./BarEditor";
 import { numbdfined } from "./utils";
 
@@ -207,7 +214,30 @@ const BarView = memo(function BarView(props: {
 });
 
 export default function App() {
+  return (
+    <>
+      <Suspense fallback={<BarComputer plates={[]} bars={[]} />}>
+        <LoadedBarComputer />
+      </Suspense>
+      <Suspense fallback={null}>
+        <Config />
+      </Suspense>
+    </>
+  );
+}
+
+function LoadedBarComputer() {
   const { plates, bars } = useMassStorage();
+  return <BarComputer plates={plates} bars={bars} />;
+}
+
+function BarComputer({
+  plates,
+  bars,
+}: {
+  plates: readonly Plate[];
+  bars: readonly Bar[];
+}) {
   const maxes = [355, 230, 420];
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
@@ -267,6 +297,7 @@ export default function App() {
       <section
         style={{
           height: Math.max(...validPlates.map((p) => p.diameterMm)) + 20,
+          minHeight: 245,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -432,7 +463,6 @@ export default function App() {
           </form>
         </details>
       </details>
-      <Config />
     </>
   );
 }
