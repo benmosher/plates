@@ -269,6 +269,23 @@ function deleteBar(idx: number) {
   txn.commit();
 }
 
+function putMax(label: string, weight: number | null) {
+  if (db == null) {
+    throw new Error("database not initialized");
+  }
+
+  // update the in-memory map and view
+  MAX_MAP.set(label, weight);
+  READ_VIEW = { ...READ_VIEW, maxes: MAX_MAP };
+  _subscriptions.forEach((cb) => cb());
+
+  // write to the database
+  const txn = db.transaction("maxes", "readwrite");
+  const store = txn.objectStore("maxes");
+  store.put({ label, weight });
+  txn.commit();
+}
+
 /**
  * This map holds the current state of the plates
  * in memory, but is global so that multiple calls to
@@ -281,7 +298,7 @@ const PLATE_MAP = new Map<number, Plate>();
 /** bars have a unique key number */
 const BAR_MAP = new Map<number, Bar>();
 
-const MAX_MAP = new Map<string, number>();
+const MAX_MAP = new Map<string, number | null>();
 
 /** for the snapshot */
 let READ_VIEW = {
@@ -308,6 +325,7 @@ interface MassStorage {
   putPlate(plate: Plate): void;
   putBar(bar: BarInput): void;
   deleteBar(idx: number): void;
+  putMax(label: string, weight: number | null): void;
 }
 
 export function useMassStorage(): MassStorage {
@@ -329,7 +347,8 @@ export function useMassStorage(): MassStorage {
       putPlate,
       putBar,
       deleteBar,
+      putMax,
     }),
-    [store, putPlate, putBar, deleteBar]
+    [store, putPlate, putBar, deleteBar, putMax]
   );
 }

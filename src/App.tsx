@@ -250,18 +250,22 @@ export default function App() {
 }
 
 function LoadedBarComputer() {
-  const { plates, bars, maxes } = useMassStorage();
-  return <BarComputer plates={plates} bars={bars} maxes={maxes} />;
+  const { plates, bars, maxes, putMax } = useMassStorage();
+  return (
+    <BarComputer plates={plates} bars={bars} maxes={maxes} putMax={putMax} />
+  );
 }
 
 function BarComputer({
   plates,
   bars,
   maxes,
+  putMax,
 }: {
   plates: readonly Plate[];
   bars: readonly Bar[];
   maxes: readonly [string, number][];
+  putMax?: (label: string, max: number | null) => void;
 }) {
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
@@ -434,9 +438,11 @@ function BarComputer({
               }
             />
             <datalist id="1rm-options">
-              {maxes.map(([label, max]) => (
-                <option key={label} value={max} />
-              ))}
+              {maxes
+                .filter(([, max]) => max)
+                .map(([label, max]) => (
+                  <option key={label} value={max} />
+                ))}
             </datalist>
             <input
               type="number"
@@ -466,7 +472,14 @@ function BarComputer({
           <form>
             {maxes.map(([label, max]) => (
               <fieldset key={label} role="group">
-                <input value={max} type="number" readOnly />
+                <input type="text" value={label} readOnly />
+                <input
+                  value={max}
+                  type="number"
+                  onChange={(e) =>
+                    putMax?.(label, numbdfined(e.target.value) ?? null)
+                  }
+                />
                 <button
                   type="button"
                   onClick={() => dispatchState({ percentageBase: max })}
