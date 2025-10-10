@@ -160,9 +160,9 @@ function initializeDatabase(): Promise<void> {
               maxStore.add(max);
               MAX_MAP.set(max.label, max.weight);
             }
+            resolveMaxes();
           } catch (e) {
             rejectMaxes(e);
-            return;
           }
         } else {
           const maxTxn = this.result.transaction("maxes", "readonly");
