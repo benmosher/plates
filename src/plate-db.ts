@@ -86,8 +86,16 @@ export const INITIAL_PLATES: readonly Plate[] = [
   { weight: 55, thicknessMm: 37, diameterMm: 225, color: "#EE402E", count: 0 },
 ];
 
+export interface Max {
+  /** unique key, auto-incrementing */
+  id?: number;
+
+  label: string | null;
+  weight: number | null;
+}
+
 /** my squatober 2k25 maxes */
-const INITIAL_MAXES = [
+export const INITIAL_MAXES: readonly Max[] = [
   { weight: 355, label: "Squat" },
   { weight: 230, label: "Bench" },
   { weight: 420, label: "Deadlift" },
@@ -125,9 +133,10 @@ function initializeStore<T>(
 /** Resolves when database is available and initialized */
 function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("mass", 3); // v2: plates + bars + maxes
+    const request = indexedDB.open("mass", 4); // v4: plates + bars + indexed maxes
 
     let initializeMaxes = false;
+    const maxesToInsert = INITIAL_MAXES;
 
     // capture the database
     request.onsuccess = function () {
@@ -156,9 +165,13 @@ function initializeDatabase(): Promise<void> {
           try {
             const maxTxn = this.result.transaction("maxes", "readwrite");
             const maxStore = maxTxn.objectStore("maxes");
-            for (const max of INITIAL_MAXES) {
-              maxStore.add(max);
-              MAX_MAP.set(max.label, max.weight);
+            for (const max of maxesToInsert) {
+              maxStore.add(max).onsuccess = function () {
+                MAX_MAP.set(this.result as number, {
+                  ...max,
+                  id: this.result as number,
+                });
+              };
             }
             resolveMaxes();
           } catch (e) {
@@ -169,11 +182,8 @@ function initializeDatabase(): Promise<void> {
           const maxStore = maxTxn.objectStore("maxes");
           const getAllRequest = maxStore.getAll();
           getAllRequest.onsuccess = function () {
-            for (const max of this.result as {
-              label: string;
-              weight: number;
-            }[]) {
-              MAX_MAP.set(max.label, max.weight);
+            for (const max of this.result as Iterable<Max>) {
+              MAX_MAP.set(max.id!, max);
             }
             resolveMaxes();
           };
@@ -190,7 +200,7 @@ function initializeDatabase(): Promise<void> {
     };
 
     /** initialize the data */
-    request.onupgradeneeded = function () {
+    request.onupgradeneeded = function (e) {
       const db = this.result;
 
       if (!db.objectStoreNames.contains("plates")) {
@@ -199,8 +209,12 @@ function initializeDatabase(): Promise<void> {
       if (!db.objectStoreNames.contains("bars")) {
         db.createObjectStore("bars", { keyPath: "idx", autoIncrement: true });
       }
+      if (e.oldVersion < 4 && db.objectStoreNames.contains("maxes")) {
+        // re-create to add keyPath
+        db.deleteObjectStore("maxes");
+      }
       if (!db.objectStoreNames.contains("maxes")) {
-        db.createObjectStore("maxes", { keyPath: "label" });
+        db.createObjectStore("maxes", { keyPath: "id", autoIncrement: true });
         initializeMaxes = true;
       }
     };
@@ -269,20 +283,37 @@ function deleteBar(idx: number) {
   txn.commit();
 }
 
-function putMax(label: string, weight: number | null) {
+function putMax(max: Max): void {
+  if (db == null) {
+    throw new Error("database not initialized");
+  }
+
+  // write to the database
+  const txn = db.transaction("maxes", "readwrite");
+  const store = txn.objectStore("maxes");
+  store.put(max).onsuccess = function () {
+    const idMax = { ...max, id: this.result as number };
+    MAX_MAP.set(idMax.id, idMax);
+    READ_VIEW = { ...READ_VIEW, maxes: MAX_MAP };
+    _subscriptions.forEach((cb) => cb());
+  };
+  txn.commit();
+}
+
+function deleteMax(idx: number) {
   if (db == null) {
     throw new Error("database not initialized");
   }
 
   // update the in-memory map and view
-  MAX_MAP.set(label, weight);
+  MAX_MAP.delete(idx);
   READ_VIEW = { ...READ_VIEW, maxes: MAX_MAP };
   _subscriptions.forEach((cb) => cb());
 
   // write to the database
   const txn = db.transaction("maxes", "readwrite");
   const store = txn.objectStore("maxes");
-  store.put({ label, weight });
+  store.delete(idx);
   txn.commit();
 }
 
@@ -298,7 +329,7 @@ const PLATE_MAP = new Map<number, Plate>();
 /** bars have a unique key number */
 const BAR_MAP = new Map<number, Bar>();
 
-const MAX_MAP = new Map<string, number | null>();
+const MAX_MAP = new Map<number, Max>();
 
 /** for the snapshot */
 let READ_VIEW = {
@@ -320,12 +351,15 @@ function _getSnapshot() {
 interface MassStorage {
   readonly plates: readonly Plate[];
   readonly bars: readonly Bar[];
-  readonly maxes: readonly [string, number | null][];
+  readonly maxes: readonly Max[];
 
   putPlate(plate: Plate): void;
+
   putBar(bar: BarInput): void;
   deleteBar(idx: number): void;
-  putMax(label: string, weight: number | null): void;
+
+  putMax(max: Max): void;
+  deleteMax(id: number): void;
 }
 
 export function useMassStorage(): MassStorage {
@@ -343,11 +377,12 @@ export function useMassStorage(): MassStorage {
         (a, b) => a.weight - b.weight
       ),
       bars: Array.from(store.bars.values()).toSorted((a, b) => a.idx - b.idx),
-      maxes: Array.from(store.maxes.entries()),
+      maxes: Array.from(store.maxes.values()).toSorted((a, b) => a.id! - b.id!),
       putPlate,
       putBar,
       deleteBar,
       putMax,
+      deleteMax,
     }),
     [store, putPlate, putBar, deleteBar, putMax]
   );

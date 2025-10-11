@@ -15,12 +15,15 @@ import {
 import {
   useMassStorage,
   Bar,
+  Max,
   Plate,
   INITIAL_BARS,
   INITIAL_PLATES,
+  INITIAL_MAXES,
 } from "./plate-db";
 import BarEditor from "./BarEditor";
 import { numbdfined } from "./utils";
+import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
 
 const DisplayPlate = memo(function DisplayPlate({
   thicknessMm,
@@ -236,11 +239,7 @@ export default function App() {
           <BarComputer
             plates={INITIAL_PLATES}
             bars={INITIAL_BARS}
-            maxes={[
-              ["Squat", 355],
-              ["Bench", 230],
-              ["Deadlift", 420],
-            ]}
+            maxes={INITIAL_MAXES}
           />
         }
       >
@@ -254,9 +253,15 @@ export default function App() {
 }
 
 function LoadedBarComputer() {
-  const { plates, bars, maxes, putMax } = useMassStorage();
+  const { plates, bars, maxes, putMax, deleteMax } = useMassStorage();
   return (
-    <BarComputer plates={plates} bars={bars} maxes={maxes} putMax={putMax} />
+    <BarComputer
+      plates={plates}
+      bars={bars}
+      maxes={maxes}
+      putMax={putMax}
+      deleteMax={deleteMax}
+    />
   );
 }
 
@@ -265,11 +270,13 @@ function BarComputer({
   bars,
   maxes,
   putMax,
+  deleteMax,
 }: {
   plates: readonly Plate[];
   bars: readonly Bar[];
-  maxes: readonly [string, number][];
-  putMax?: (label: string, max: number | null) => void;
+  maxes: readonly Max[];
+  putMax?: (max: Max) => void;
+  deleteMax?: (id: number) => void;
 }) {
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
@@ -447,9 +454,9 @@ function BarComputer({
             />
             <datalist id="1rm-options">
               {maxes
-                .filter(([, max]) => max)
-                .map(([label, max]) => (
-                  <option key={label} value={max} />
+                .filter(({ weight }) => weight)
+                .map(({ id, weight }) => (
+                  <option key={id} value={weight!} />
                 ))}
             </datalist>
             <input
@@ -480,28 +487,69 @@ function BarComputer({
         <details open>
           <summary>Maxes</summary>
           <form>
-            {maxes.map(([label, max]) => (
-              <fieldset key={label} role="group">
-                <input type="text" value={label} readOnly />
-                <input
-                  value={max}
-                  type="number"
-                  onChange={(e) =>
-                    putMax?.(label, numbdfined(e.target.value) ?? null)
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => dispatchState({ percentageBase: max })}
-                >
-                  Use
-                </button>
-              </fieldset>
+            {maxes.map((max) => (
+              <MaxEditor
+                key={max.id}
+                max={max}
+                putMax={putMax}
+                deleteMax={deleteMax}
+                onUse={(weight) => dispatchState({ percentageBase: weight })}
+              />
             ))}
+            <button
+              type="button"
+              onClick={() => putMax?.({ label: "", weight: null })}
+            >
+              Add
+            </button>
           </form>
         </details>
       </details>
     </>
+  );
+}
+
+function MaxEditor({
+  max,
+  putMax,
+  onUse,
+  deleteMax,
+}: {
+  max: Max;
+  putMax?: (max: Max) => void;
+  deleteMax?: (id: number) => void;
+  onUse?: (weight: number | null) => void;
+}) {
+  return (
+    <fieldset role="group">
+      {deleteMax && (
+        <DoubleClickConfirmButton onClick={() => deleteMax(max.id!)}>
+          X
+        </DoubleClickConfirmButton>
+      )}
+      <input
+        type="text"
+        defaultValue={max.label ?? ""}
+        onChange={(e) => putMax?.({ ...max, label: e.target.value })}
+      />
+      <input
+        defaultValue={max.weight ?? ""}
+        type="number"
+        onChange={(e) =>
+          putMax?.({
+            ...max,
+            weight: numbdfined(e.target.value) ?? null,
+          })
+        }
+      />
+      <button
+        type="button"
+        disabled={!onUse}
+        onClick={() => onUse?.(max.weight)}
+      >
+        Use
+      </button>
+    </fieldset>
   );
 }
 
