@@ -209,7 +209,7 @@ function useUrlState(barTypes: Set<string>) {
 
 const BarView = memo(function BarView(props: {
   determinedPlates: readonly (Plate & { count: number })[];
-  barLength?: number;
+  bar: Bar | null | undefined;
 }) {
   const stack = props.determinedPlates.flatMap((plate) =>
     Array.from({ length: plate.count }, (_, j) => (
@@ -224,23 +224,42 @@ const BarView = memo(function BarView(props: {
     api.start({ y: down ? Math.min(my, 0) : 0 });
   });
   return (
-    <animated.section
-      {...bind()}
-      style={{
-        height: 245,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        y: y.to((v) => -Math.abs(v)),
-        touchAction: "none",
-      }}
-    >
-      {NUBBIN}
-      {stack.toReversed()}
-      <Handle barLength={props.barLength ?? 500} />
-      {stack}
-      {NUBBIN}
-    </animated.section>
+    <>
+      <animated.section
+        {...bind()}
+        style={{
+          height: 245,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          y: y.to((v) => -Math.abs(v)),
+          touchAction: "none",
+        }}
+      >
+        {NUBBIN}
+        {stack.toReversed()}
+        <Handle barLength={props.bar?.barLength ?? 500} />
+        {stack}
+        {NUBBIN}
+      </animated.section>
+      <section>
+        <center>
+          <h4>
+            {props.determinedPlates.length ? (
+              <span>
+                {props.determinedPlates
+                  .map((p) =>
+                    p.count > 1 ? `${p.weight}x${p.count}` : p.weight
+                  )
+                  .join(", ") || "(empty)"}
+              </span>
+            ) : (
+              "No valid plate combination!"
+            )}
+          </h4>
+        </center>
+      </section>
+    </>
   );
 });
 
@@ -346,6 +365,7 @@ function BarComputer({
 
   return (
     <>
+      <BarView determinedPlates={determinedPlates} bar={activeBar} />
       <form>
         <datalist id="target-options">
           {possibleWeights?.map((v) => (
@@ -355,16 +375,17 @@ function BarComputer({
           ))}
         </datalist>
         <fieldset>
-          <legend>Input work weight:</legend>
           <fieldset role="group">
             <input
               id="target-number"
               type="number"
+              placeholder="work weight"
               value={target ?? ""}
               min={weightMin}
               max={weightMax}
               step={weightStep}
               onFocus={clear}
+              onKeyDown={onEnterBlur}
               onBlur={scrollToTop}
               onChange={(e) =>
                 dispatchState({ target: numbdfined(e.target.value) })
@@ -419,34 +440,9 @@ function BarComputer({
                 dispatchState({ target: numbdfined(e.target.value) })
               }
             />
-            <small>use slider for quick changes!</small>
           </label>
         </fieldset>
       </form>
-      <BarView
-        determinedPlates={determinedPlates}
-        barLength={activeBar?.barLength ?? 500}
-      />
-      <section>
-        <p>
-          Bar:&nbsp;
-          <b>
-            {activeBar ? `${activeBar.name} (${activeBar.weight})` : "no bar!"}
-          </b>
-        </p>
-        <p>
-          Plates:&nbsp;
-          <b>
-            {validTarget
-              ? determinedPlates
-                  .map((p) =>
-                    p.count > 1 ? `${p.weight}x${p.count}` : p.weight
-                  )
-                  .join(", ") || "(empty)"
-              : "No valid plate combination!"}
-          </b>
-        </p>
-      </section>
 
       <details>
         <summary>Adjust weight by percentage</summary>
@@ -460,6 +456,7 @@ function BarComputer({
               value={percentage ?? ""}
               placeholder="%"
               onFocus={clear}
+              onKeyDown={onEnterBlur}
               onBlur={scrollToTop}
               onChange={(e) =>
                 dispatchState({ percentage: numbdfined(e.target.value) })
@@ -479,6 +476,7 @@ function BarComputer({
               min={0}
               list="1rm-options"
               onFocus={clear}
+              onKeyDown={onEnterBlur}
               onBlur={scrollToTop}
               onChange={(e) =>
                 dispatchState({ percentageBase: numbdfined(e.target.value) })
@@ -495,7 +493,6 @@ function BarComputer({
               dispatchState({ percentage: numbdfined(e.target.value) })
             }
           />
-          <small>use slider to tweak percentage</small>
         </form>
         <details open>
           <summary>Maxes</summary>
@@ -591,6 +588,13 @@ function clear(e: React.FocusEvent<HTMLInputElement>) {
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function onEnterBlur(e: React.KeyboardEvent<HTMLInputElement>) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    e.currentTarget.blur();
+  }
 }
 
 const PLATE_COUNT_MAX = 20; // arbitrary max to avoid overloading the plate space computation
