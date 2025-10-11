@@ -77,21 +77,6 @@ function getUrlState(barTypes: Set<string>): State {
   };
 }
 
-function buildUrlHash(state: State): string {
-  const params = new URLSearchParams();
-  if (state.target != null) params.set("weight", String(state.target));
-  if (state.barType) params.set("bar", state.barType);
-  if (state.barWeight != null) params.set("barWeight", String(state.barWeight));
-
-  // only set pct if target not explicitly set
-  if (state.percentage != null && state.target == null)
-    params.set("pct", String(state.percentage));
-
-  if (state.percentageBase != null)
-    params.set("1rm", String(state.percentageBase));
-  return `#${params.toString()}`;
-}
-
 function stateReducer(state: State, newState: Partial<State>): State {
   const percentageBase =
     "percentageBase" in newState
@@ -134,38 +119,9 @@ function stateReducer(state: State, newState: Partial<State>): State {
   return { ...state, percentageBase, barType, barWeight };
 }
 
-function useUrlState(barTypes: Set<string>) {
-  const reducer = useReducer(stateReducer, barTypes, getUrlState);
-
-  const saveURLState = () => {
-    if (
-      Object.entries(getUrlState(barTypes)).every(
-        ([key, value]) => value === reducer[0][key as keyof State]
-      )
-    )
-      return; // don't push a state if we're matching
-
-    history.pushState(null, "", buildUrlHash(reducer[0]));
-  };
-
-  useEffect(function saveToUrlDebounced() {
-    const cancelHandle = setTimeout(saveURLState, 1000);
-    return () => clearTimeout(cancelHandle);
-  }, Object.values(reducer[0]));
-
-  useEffect(function listenToPopState() {
-    const onPopState = () => {
-      // get only the defined values from the URL
-      const newState = Object.fromEntries(
-        Object.entries(getUrlState(barTypes)).filter(([, v]) => v != null)
-      ) as Partial<State>;
-
-      reducer[1](newState);
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-  return reducer;
+function useAppState(barTypes: Set<string>) {
+  // TODO: restore state storage
+  return useReducer(stateReducer, barTypes, getUrlState);
 }
 
 export default function App() {
@@ -220,7 +176,7 @@ function BarComputer({
   let [
     { target, percentage, percentageBase, barType, barWeight },
     dispatchState,
-  ] = useUrlState(barTypes);
+  ] = useAppState(barTypes);
 
   // default bar type
   if (!barType && bars[0]) {
