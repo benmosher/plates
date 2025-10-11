@@ -7,14 +7,7 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import {
-  memo,
-  Suspense,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useReducer,
-} from "react";
+import { Suspense, useDeferredValue, useMemo, useReducer } from "react";
 import {
   useMassStorage,
   Bar,
@@ -24,11 +17,11 @@ import {
   INITIAL_PLATES,
   INITIAL_MAXES,
 } from "./plate-db";
-import BarEditor from "./BarEditor";
+import MassConfig from "./MassConfig";
 import { numbdfined } from "./utils";
 import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
 import BarView from "./BarView";
-import { Link } from "react-router";
+import { Link, Route, Routes } from "react-router";
 
 function Nav() {
   return (
@@ -43,6 +36,9 @@ function Nav() {
       <ul>
         <li>
           <Link to="/mass">Mass</Link>
+        </li>
+        <li>
+          <Link to="/maxes">Maxes</Link>
         </li>
       </ul>
     </nav>
@@ -127,49 +123,45 @@ function useAppState(barTypes: Set<string>) {
 export default function App() {
   return (
     <>
-      <Suspense
-        fallback={
-          <BarComputer
-            plates={INITIAL_PLATES}
-            bars={INITIAL_BARS}
-            maxes={INITIAL_MAXES}
-          />
-        }
-      >
-        <LoadedBarComputer />
-      </Suspense>
-      <Suspense fallback={null}>
-        <Config />
-      </Suspense>
+      <Nav />
+      <Routes>
+        <Route path="/" element={<ComputerRoute />} />
+        <Route path="/mass" element={<MassConfig />} />
+        <Route path="/maxes" element={<MaxesEditor />} />
+      </Routes>
     </>
   );
 }
 
-function LoadedBarComputer() {
-  const { plates, bars, maxes, putMax, deleteMax } = useMassStorage();
+function ComputerRoute() {
   return (
-    <BarComputer
-      plates={plates}
-      bars={bars}
-      maxes={maxes}
-      putMax={putMax}
-      deleteMax={deleteMax}
-    />
+    <Suspense
+      fallback={
+        <BarComputer
+          plates={INITIAL_PLATES}
+          bars={INITIAL_BARS}
+          maxes={INITIAL_MAXES}
+        />
+      }
+    >
+      <LoadedBarComputer />
+    </Suspense>
   );
+}
+
+function LoadedBarComputer() {
+  const { plates, bars, maxes } = useMassStorage();
+  return <BarComputer plates={plates} bars={bars} maxes={maxes} />;
 }
 
 function BarComputer({
   plates,
   bars,
   maxes,
-  putMax,
-  deleteMax,
 }: {
   plates: readonly Plate[];
   bars: readonly Bar[];
   maxes: readonly Max[];
-  putMax?: (max: Max) => void;
-  deleteMax?: (id: number) => void;
 }) {
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
@@ -226,7 +218,6 @@ function BarComputer({
 
   return (
     <>
-      <Nav />
       <BarView determinedPlates={determinedPlates} bar={activeBar} />
       <form>
         <datalist id="target-options">
@@ -355,49 +346,76 @@ function BarComputer({
               dispatchState({ percentage: numbdfined(e.target.value) })
             }
           />
-        </form>
-        <details open>
-          <summary>Maxes</summary>
-          <form>
+          <fieldset className="grid">
             {maxes.map((max) => (
-              <MaxEditor
+              <button
+                type="button"
                 key={max.id}
-                max={max}
-                putMax={putMax}
-                deleteMax={deleteMax}
-                onUse={(weight) => dispatchState({ percentageBase: weight })}
-              />
+                onClick={() => dispatchState({ percentageBase: max.weight })}
+              >
+                {max.label}
+              </button>
             ))}
-            <button
-              type="button"
-              onClick={() => putMax?.({ label: "", weight: null })}
-            >
-              Add
-            </button>
-          </form>
-        </details>
+          </fieldset>
+        </form>
       </details>
     </>
   );
 }
 
+function MaxesEditor() {
+  return (
+    <Suspense fallback={null}>
+      <RawMaxesEditor />
+    </Suspense>
+  );
+}
+
+function RawMaxesEditor() {
+  const { maxes, putMax, deleteMax } = useMassStorage();
+  return (
+    <details open>
+      <summary>Maxes</summary>
+      <form>
+        {maxes.map((max) => (
+          <MaxEditor
+            key={max.id}
+            max={max}
+            putMax={putMax}
+            deleteMax={deleteMax}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={() => putMax?.({ label: "", weight: null })}
+        >
+          Add
+        </button>
+      </form>
+    </details>
+  );
+}
+
+function clamp(x: number, min: number, max: number) {
+  return x < min ? min : x > max ? max : x;
+}
+
 function MaxEditor({
   max,
   putMax,
-  onUse,
   deleteMax,
 }: {
   max: Max;
   putMax?: (max: Max) => void;
   deleteMax?: (id: number) => void;
-  onUse?: (weight: number | null) => void;
 }) {
   // swipe to delete
   const [{ x, y }, api] = useSpring(() => ({ x: 0, y: 0 }));
   const bind = useDrag(({ down, movement: [mx] }) => {
     const xStop = mx < -95 ? -95 : 0;
+    const clamped = clamp(mx, -120, 20);
     if (down && (mx > 20 || mx < -120)) return; // don't drag too far
-    api.start({ x: down ? mx : xStop, y: 0 });
+    api.start({ x: down ? clamped : xStop, y: 0 });
   });
   return (
     <div style={{ position: "relative" }}>
@@ -430,14 +448,6 @@ function MaxEditor({
             })
           }
         />
-
-        <button
-          type="button"
-          disabled={!onUse}
-          onClick={() => onUse?.(max.weight)}
-        >
-          Use
-        </button>
       </animated.fieldset>
     </div>
   );
@@ -458,118 +468,3 @@ function onEnterBlur(e: React.KeyboardEvent<HTMLInputElement>) {
     e.currentTarget.blur();
   }
 }
-
-const PLATE_COUNT_MAX = 20; // arbitrary max to avoid overloading the plate space computation
-
-const Config = memo(function Config() {
-  const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
-  const barTypes = useMemo(
-    () => bars.reduce((set, b) => set.add(b.type), new Set<string>()),
-    [bars]
-  );
-  return (
-    <>
-      <details>
-        <summary>Bars</summary>
-        <datalist id="bar-type-options">
-          {Array.from(barTypes).map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </datalist>
-        {bars.map((bar) => (
-          <BarEditor
-            key={bar.idx}
-            bar={bar}
-            putBar={putBar}
-            deleteBar={deleteBar}
-            barTypeDatalistId="bar-type-options"
-          />
-        ))}
-        <BarEditor
-          key={Math.max(...bars.map((b) => b.idx ?? 0)) + 1}
-          bar={{
-            name: "(add new)",
-            type: "barbell",
-            weight: 0,
-            barLength: 500,
-            handleWidth: 200,
-          }}
-          putBar={putBar}
-          barTypeDatalistId="bar-type-options"
-        />
-      </details>
-      <details>
-        <summary>Plates (pairs)</summary>
-        <form>
-          {plates.map((plate, index) => (
-            <fieldset role="group" key={index}>
-              <input type="number" value={plate.weight} readOnly />
-              <input
-                type="color"
-                value={plate.color}
-                onChange={(e) => putPlate({ ...plate, color: e.target.value })}
-              />
-              <input
-                type="number"
-                step={1}
-                min={0}
-                max={PLATE_COUNT_MAX}
-                value={plate.count}
-                onChange={(e) => {
-                  // todo: undefined plate count?
-                  putPlate({ ...plate, count: numbdfined(e.target.value) });
-                }}
-              />
-              <button
-                type="button"
-                disabled={!plate.count}
-                onClick={() =>
-                  putPlate({ ...plate, count: (plate.count ?? 1) - 1 })
-                }
-              >
-                -
-              </button>
-              <button
-                type="button"
-                disabled={plate.count != null && plate.count >= PLATE_COUNT_MAX}
-                onClick={() =>
-                  putPlate({ ...plate, count: (plate.count ?? 0) + 1 })
-                }
-              >
-                +
-              </button>
-            </fieldset>
-          ))}
-        </form>
-      </details>
-      <details>
-        <summary>Ready for more?</summary>
-        <ul>
-          <li>
-            <a href="https://amzn.to/45WSXPC">
-              Loadable Olympic dumbbell handles
-            </a>
-          </li>
-          <li>
-            <a href="https://amzn.to/3JYYlKC">Fractional plate set (lb)</a>
-          </li>
-          <li>
-            <a href="https://amzn.to/3K0g04B">10lb plates</a>
-          </li>
-          <li>
-            <a href="https://amzn.to/4n4LCEA">5lb plates</a>
-          </li>
-          <li>
-            <a href="https://amzn.to/4g1AaXY">2.5lb plates</a>
-          </li>
-          <li>
-            <a href="https://amzn.to/45Rkthi">Collars</a>
-          </li>
-        </ul>
-        <small>As an Amazon Associate, I earn from qualifying purchases.</small>
-      </details>
-    </>
-  );
-});
