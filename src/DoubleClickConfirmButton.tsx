@@ -4,6 +4,7 @@ export default function DoubleClickConfirmButton(props: {
   onClick: () => void;
   disabled?: boolean;
   children: React.ReactNode;
+  style?: React.CSSProperties;
 }) {
   const [armed, setArmed] = useState(false);
   useEffect(() => {
@@ -29,6 +30,7 @@ export default function DoubleClickConfirmButton(props: {
       style={{
         background: armed ? "#C52F21" : undefined,
         color: armed ? "#F1F1F1" : undefined,
+        ...props.style,
       }}
     >
       {props.children}

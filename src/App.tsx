@@ -1,3 +1,6 @@
+import { useSpring, animated } from "@react-spring/web";
+import { useDrag } from "@use-gesture/react";
+
 import {
   chooseBar,
   closestTarget,
@@ -520,36 +523,54 @@ function MaxEditor({
   deleteMax?: (id: number) => void;
   onUse?: (weight: number | null) => void;
 }) {
+  // swipe to delete
+  const [{ x, y }, api] = useSpring(() => ({ x: 0, y: 0 }));
+  const bind = useDrag(({ down, movement: [mx] }) => {
+    const xStop = mx < -95 ? -95 : 0;
+    if (down && (mx > 20 || mx < -120)) return; // don't drag too far
+    api.start({ x: down ? mx : xStop, y: 0 });
+  });
   return (
-    <fieldset role="group">
-      {deleteMax && (
-        <DoubleClickConfirmButton onClick={() => deleteMax(max.id!)}>
-          X
-        </DoubleClickConfirmButton>
-      )}
-      <input
-        type="text"
-        defaultValue={max.label ?? ""}
-        onChange={(e) => putMax?.({ ...max, label: e.target.value })}
-      />
-      <input
-        defaultValue={max.weight ?? ""}
-        type="number"
-        onChange={(e) =>
-          putMax?.({
-            ...max,
-            weight: numbdfined(e.target.value) ?? null,
-          })
-        }
-      />
-      <button
-        type="button"
-        disabled={!onUse}
-        onClick={() => onUse?.(max.weight)}
+    <div style={{ position: "relative" }}>
+      <DoubleClickConfirmButton
+        style={{
+          position: "absolute",
+          right: 0,
+        }}
+        onClick={() => deleteMax?.(max.id!)}
       >
-        Use
-      </button>
-    </fieldset>
+        Delete
+      </DoubleClickConfirmButton>
+      <animated.fieldset
+        role="group"
+        {...bind()}
+        style={{ x, y, touchAction: "none" }}
+      >
+        <input
+          type="text"
+          defaultValue={max.label ?? ""}
+          onChange={(e) => putMax?.({ ...max, label: e.target.value })}
+        />
+        <input
+          defaultValue={max.weight ?? ""}
+          type="number"
+          onChange={(e) =>
+            putMax?.({
+              ...max,
+              weight: numbdfined(e.target.value) ?? null,
+            })
+          }
+        />
+
+        <button
+          type="button"
+          disabled={!onUse}
+          onClick={() => onUse?.(max.weight)}
+        >
+          Use
+        </button>
+      </animated.fieldset>
+    </div>
   );
 }
 
