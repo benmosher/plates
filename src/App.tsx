@@ -345,6 +345,7 @@ function BarComputer({
               max={weightMax}
               step={weightStep}
               onFocus={clear}
+              onBlur={scrollToTop}
               onChange={(e) =>
                 dispatchState({ target: numbdfined(e.target.value) })
               }
@@ -439,6 +440,7 @@ function BarComputer({
               value={percentage ?? ""}
               placeholder="%"
               onFocus={clear}
+              onBlur={scrollToTop}
               onChange={(e) =>
                 dispatchState({ percentage: numbdfined(e.target.value) })
               }
@@ -457,6 +459,7 @@ function BarComputer({
               min={0}
               list="1rm-options"
               onFocus={clear}
+              onBlur={scrollToTop}
               onChange={(e) =>
                 dispatchState({ percentageBase: numbdfined(e.target.value) })
               }
@@ -505,6 +508,10 @@ function BarComputer({
 /** autoclear on focus for easier changes */
 function clear(e: React.FocusEvent<HTMLInputElement>) {
   e.target.value = "";
+}
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 const PLATE_COUNT_MAX = 20; // arbitrary max to avoid overloading the plate space computation
