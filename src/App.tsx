@@ -216,13 +216,23 @@ const BarView = memo(function BarView(props: {
       <DisplayPlate key={`${plate.weight}-${j}`} {...plate} />
     ))
   );
+  const [{ y }, api] = useSpring(() => ({
+    y: 0,
+    config: { frequency: 0.4, damping: 0.3 },
+  }));
+  const bind = useDrag(({ down, movement: [, my] }) => {
+    api.start({ y: down ? Math.min(my, 0) : 0 });
+  });
   return (
-    <section
+    <animated.section
+      {...bind()}
       style={{
         height: 245,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        y: y.to((v) => -Math.abs(v)),
+        touchAction: "none",
       }}
     >
       {NUBBIN}
@@ -230,7 +240,7 @@ const BarView = memo(function BarView(props: {
       <Handle barLength={props.barLength ?? 500} />
       {stack}
       {NUBBIN}
-    </section>
+    </animated.section>
   );
 });
 
