@@ -23,37 +23,6 @@ const RawConfig = memo(function Config() {
   return (
     <>
       <details open>
-        <summary>Bars</summary>
-        <datalist id="bar-type-options">
-          {Array.from(barTypes).map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </datalist>
-        {bars.map((bar) => (
-          <BarEditor
-            key={bar.idx}
-            bar={bar}
-            putBar={putBar}
-            deleteBar={deleteBar}
-            barTypeDatalistId="bar-type-options"
-          />
-        ))}
-        <BarEditor
-          key={Math.max(...bars.map((b) => b.idx ?? 0)) + 1}
-          bar={{
-            name: "(add new)",
-            type: "barbell",
-            weight: 0,
-            barLength: 500,
-            handleWidth: 200,
-          }}
-          putBar={putBar}
-          barTypeDatalistId="bar-type-options"
-        />
-      </details>
-      <details open>
         <summary>Plates (pairs)</summary>
         <form>
           {plates.map((plate, index) => (
@@ -96,6 +65,37 @@ const RawConfig = memo(function Config() {
             </fieldset>
           ))}
         </form>
+      </details>
+      <details open>
+        <summary>Bars</summary>
+        <datalist id="bar-type-options">
+          {Array.from(barTypes).map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
+        </datalist>
+        {bars.map((bar) => (
+          <BarEditor
+            key={bar.idx}
+            bar={bar}
+            putBar={putBar}
+            deleteBar={deleteBar}
+            barTypeDatalistId="bar-type-options"
+          />
+        ))}
+        <BarEditor
+          key={Math.max(...bars.map((b) => b.idx ?? 0)) + 1}
+          bar={{
+            name: "(add new)",
+            type: "barbell",
+            weight: 0,
+            barLength: 500,
+            handleWidth: 200,
+          }}
+          putBar={putBar}
+          barTypeDatalistId="bar-type-options"
+        />
       </details>
       <details open>
         <summary>Ready for more?</summary>
