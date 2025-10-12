@@ -1,6 +1,3 @@
-import { useSpring, animated } from "@react-spring/web";
-import { useDrag } from "@use-gesture/react";
-
 import {
   chooseBar,
   closestTarget,
@@ -19,7 +16,7 @@ import {
 } from "./plate-db";
 import MassConfig from "./MassConfig";
 import { numbdfined } from "./utils";
-import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
+import { HiddenDeleteFieldset } from "./HiddenDeleteFieldset";
 import BarView from "./BarView";
 import { Link, Route, Routes } from "react-router";
 import {
@@ -337,10 +334,6 @@ function RawMaxesEditor() {
   );
 }
 
-function clamp(x: number, min: number, max: number) {
-  return x < min ? min : x > max ? max : x;
-}
-
 function MaxEditor({
   max,
   putMax,
@@ -350,47 +343,24 @@ function MaxEditor({
   putMax?: (max: Max) => void;
   deleteMax?: (id: number) => void;
 }) {
-  // swipe to delete
-  const [{ x, y }, api] = useSpring(() => ({ x: 0, y: 0 }));
-  const bind = useDrag(({ down, movement: [mx] }) => {
-    const xStop = mx < -95 ? -95 : 0;
-    const clamped = clamp(mx, -120, 20);
-    if (down && (mx > 20 || mx < -120)) return; // don't drag too far
-    api.start({ x: down ? clamped : xStop, y: 0 });
-  });
   return (
-    <div style={{ position: "relative" }}>
-      <DoubleClickConfirmButton
-        style={{
-          position: "absolute",
-          right: 0,
-        }}
-        onClick={() => deleteMax?.(max.id!)}
-      >
-        Delete
-      </DoubleClickConfirmButton>
-      <animated.fieldset
-        role="group"
-        {...bind()}
-        style={{ x, y, touchAction: "none" }}
-      >
-        <input
-          type="text"
-          defaultValue={max.label ?? ""}
-          onChange={(e) => putMax?.({ ...max, label: e.target.value })}
-        />
-        <input
-          defaultValue={max.weight ?? ""}
-          type="number"
-          onChange={(e) =>
-            putMax?.({
-              ...max,
-              weight: numbdfined(e.target.value) ?? null,
-            })
-          }
-        />
-      </animated.fieldset>
-    </div>
+    <HiddenDeleteFieldset onDelete={() => deleteMax?.(max.id!)}>
+      <input
+        type="text"
+        defaultValue={max.label ?? ""}
+        onChange={(e) => putMax?.({ ...max, label: e.target.value })}
+      />
+      <input
+        defaultValue={max.weight ?? ""}
+        type="number"
+        onChange={(e) =>
+          putMax?.({
+            ...max,
+            weight: numbdfined(e.target.value) ?? null,
+          })
+        }
+      />
+    </HiddenDeleteFieldset>
   );
 }
 
