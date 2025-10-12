@@ -2,3 +2,7 @@
 export function numbdfined(value: string | null | undefined) {
   return value ? +value : undefined;
 }
+
+export function numbornull(value: string | null | undefined) {
+  return value ? +value : null;
+}
