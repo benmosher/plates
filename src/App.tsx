@@ -22,7 +22,12 @@ import { numbdfined } from "./utils";
 import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
 import BarView from "./BarView";
 import { Link, Route, Routes } from "react-router";
-import { AppContextProvider, useAppState, useUrlHash } from "./context";
+import {
+  AppContextProvider,
+  useAppState,
+  useSaveState,
+  useUrlHash,
+} from "./context";
 
 function Nav() {
   const computeHash = useUrlHash();
@@ -92,11 +97,12 @@ function BarComputer({
 }) {
   const barTypes = bars.reduce((set, b) => set.add(b.type), new Set<string>());
 
-  let [
-    { target, percentage, percentageBase, barType, barWeight },
-    dispatchState,
-  ] = useAppState();
+  const [state, dispatchState] = useAppState();
 
+  // record state changes when rendering this component
+  useSaveState(state);
+
+  let { target, percentage, percentageBase, barType, barWeight } = state;
   // validate/default bar type
   if (barType && !barTypes.has(barType)) barType = null;
   if (!barType && bars[0]) {
