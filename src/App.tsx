@@ -7,7 +7,13 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import { Suspense, useDeferredValue, useMemo, useReducer } from "react";
+import {
+  Suspense,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useReducer,
+} from "react";
 import {
   useMassStorage,
   Bar,
@@ -59,6 +65,22 @@ type State = {
   percentageBase?: number | null;
 };
 
+function getInitialState(barTypes: Set<string>): State {
+  // use URL if possible, otherwise localstorage
+  const urlState = getUrlState(barTypes);
+  if (!urlState.target && (!urlState.percentage || !urlState.percentageBase)) {
+    const saved = localStorage.getItem("appState");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        // ignore parse errors
+      }
+    }
+  }
+  return urlState;
+}
+
 function getUrlState(barTypes: Set<string>): State {
   // use hash as search
   const params = new URLSearchParams("?" + window.location.hash.slice(1));
@@ -71,6 +93,21 @@ function getUrlState(barTypes: Set<string>): State {
     percentage: numbdfined(params.get("pct")) ?? null,
     percentageBase: numbdfined(params.get("1rm")) ?? null,
   };
+}
+
+function buildUrlHash(state: State): string {
+  const params = new URLSearchParams();
+  if (state.target != null) params.set("weight", String(state.target));
+  if (state.barType) params.set("bar", state.barType);
+  if (state.barWeight != null) params.set("barWeight", String(state.barWeight));
+
+  // only set pct if target not explicitly set
+  if (state.percentage != null && state.target == null)
+    params.set("pct", String(state.percentage));
+
+  if (state.percentageBase != null)
+    params.set("1rm", String(state.percentageBase));
+  return `#${params.toString()}`;
 }
 
 function stateReducer(state: State, newState: Partial<State>): State {
@@ -116,8 +153,40 @@ function stateReducer(state: State, newState: Partial<State>): State {
 }
 
 function useAppState(barTypes: Set<string>) {
-  // TODO: restore state storage
-  return useReducer(stateReducer, barTypes, getUrlState);
+  const [state, dispatch] = useReducer(stateReducer, barTypes, getInitialState);
+
+  const saveURLState = () => {
+    const current = getUrlState(barTypes);
+    if (
+      Object.entries(current).every(
+        ([key, value]) => value == state[key as keyof State]
+      )
+    )
+      return; // don't push a state if we're matching
+
+    history.pushState(null, "", buildUrlHash(state));
+  };
+
+  useEffect(function saveState() {
+    localStorage.setItem("appState", JSON.stringify(state));
+    const cancelHandle = setTimeout(saveURLState, 1000);
+    return () => clearTimeout(cancelHandle);
+  }, Object.values(state));
+
+  useEffect(function listenToPopState() {
+    const onPopState = () => {
+      // get only the defined values from the URL
+      const newState = Object.fromEntries(
+        Object.entries(getUrlState(barTypes)).filter(([, v]) => v != null)
+      ) as Partial<State>;
+
+      dispatch(newState);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  return [state, dispatch] as const;
 }
 
 export default function App() {
