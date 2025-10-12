@@ -219,86 +219,88 @@ function BarComputer({
   return (
     <>
       <BarView determinedPlates={determinedPlates} bar={activeBar} />
-      <form>
-        <datalist id="target-options">
-          {possibleWeights?.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </datalist>
-        <fieldset>
-          <fieldset role="group">
-            <input
-              id="target-number"
-              type="number"
-              placeholder="work weight"
-              value={target ?? ""}
-              min={weightMin}
-              max={weightMax}
-              step={weightStep}
-              onFocus={clear}
-              onKeyDown={onEnterBlur}
-              onBlur={scrollToTop}
-              onChange={(e) =>
-                dispatchState({ target: numbdfined(e.target.value) })
-              }
-              aria-invalid={!validTarget}
-            />
-            <select
-              value={JSON.stringify({ barType, barWeight })}
-              aria-invalid={!validTarget}
-              onChange={(e) => {
-                dispatchState(JSON.parse(e.target.value));
-              }}
-            >
-              <optgroup label="Best fit">
-                {Array.from(barTypes).map((type) => (
-                  <option
-                    key={type}
-                    value={JSON.stringify({
-                      barType: type,
-                      barWeight: null,
-                    })}
-                  >
-                    {type}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Specific bars">
-                {bars.map((bar) => (
-                  <option
-                    key={bar.idx}
-                    value={JSON.stringify({
-                      barType: bar.type,
-                      barWeight: bar.weight,
-                    })}
-                  >
-                    {bar.name} ({bar.weight})
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+      <section>
+        <form>
+          <datalist id="target-options">
+            {possibleWeights?.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </datalist>
+          <fieldset>
+            <fieldset role="group">
+              <input
+                id="target-number"
+                type="number"
+                placeholder="work weight"
+                value={target ?? ""}
+                min={weightMin}
+                max={weightMax}
+                step={weightStep}
+                onFocus={clear}
+                onKeyDown={onEnterBlur}
+                onBlur={scrollToTop}
+                onChange={(e) =>
+                  dispatchState({ target: numbdfined(e.target.value) })
+                }
+                aria-invalid={!validTarget}
+              />
+              <select
+                value={JSON.stringify({ barType, barWeight })}
+                aria-invalid={!validTarget}
+                onChange={(e) => {
+                  dispatchState(JSON.parse(e.target.value));
+                }}
+              >
+                <optgroup label="Best fit">
+                  {Array.from(barTypes).map((type) => (
+                    <option
+                      key={type}
+                      value={JSON.stringify({
+                        barType: type,
+                        barWeight: null,
+                      })}
+                    >
+                      {type}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Specific bars">
+                  {bars.map((bar) => (
+                    <option
+                      key={bar.idx}
+                      value={JSON.stringify({
+                        barType: bar.type,
+                        barWeight: bar.weight,
+                      })}
+                    >
+                      {bar.name} ({bar.weight})
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </fieldset>
+            <label>
+              <input
+                id="target-range"
+                type="range"
+                list="target-options"
+                min={weightMin}
+                max={weightMax}
+                step={weightStep}
+                value={target ?? ""}
+                onChange={(e) =>
+                  dispatchState({ target: numbdfined(e.target.value) })
+                }
+              />
+            </label>
           </fieldset>
-          <label>
-            <input
-              id="target-range"
-              type="range"
-              list="target-options"
-              min={weightMin}
-              max={weightMax}
-              step={weightStep}
-              value={target ?? ""}
-              onChange={(e) =>
-                dispatchState({ target: numbdfined(e.target.value) })
-              }
-            />
-          </label>
-        </fieldset>
-      </form>
+        </form>
+      </section>
 
-      <details>
-        <summary>Adjust weight by percentage</summary>
+      <section>
+        <h6>or use a percentage:</h6>
         <form>
           <fieldset role="group">
             <input
@@ -347,18 +349,23 @@ function BarComputer({
             }
           />
           <fieldset className="grid">
-            {maxes.map((max) => (
-              <button
-                type="button"
-                key={max.id}
-                onClick={() => dispatchState({ percentageBase: max.weight })}
-              >
-                {max.label}
-              </button>
-            ))}
+            {maxes
+              .filter(({ label, weight }) => label && weight)
+              .map((max) => (
+                <button
+                  type="button"
+                  key={max.id}
+                  onClick={() => dispatchState({ percentageBase: max.weight })}
+                >
+                  {max.label} ({max.weight})
+                </button>
+              ))}
           </fieldset>
+          <small>
+            (configure maxes <Link to="/maxes">here</Link>)
+          </small>
         </form>
-      </details>
+      </section>
     </>
   );
 }
