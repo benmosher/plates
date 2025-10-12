@@ -247,8 +247,8 @@ function BarComputer({
             <datalist id="1rm-options">
               {maxes
                 .filter(({ weight }) => weight)
-                .map(({ id, weight }) => (
-                  <option key={id} value={weight!} />
+                .map(({ id, weight }, i) => (
+                  <option key={id ?? i} value={weight!} />
                 ))}
             </datalist>
             <input
@@ -278,10 +278,10 @@ function BarComputer({
           <fieldset className="grid">
             {maxes
               .filter(({ label, weight }) => label && weight)
-              .map((max) => (
+              .map((max, i) => (
                 <button
                   type="button"
-                  key={max.id}
+                  key={max.id ?? i}
                   onClick={() => dispatchState({ percentageBase: max.weight })}
                 >
                   {max.label} ({max.weight})
