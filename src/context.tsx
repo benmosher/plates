@@ -1,4 +1,4 @@
-import { useEffect, useReducer } from "react";
+import { createContext, use, useEffect, useReducer } from "react";
 import { numbornull } from "./utils";
 
 type State = {
@@ -58,6 +58,11 @@ function buildUrlHash(state: State): string {
   return `#${params.toString()}`;
 }
 
+export function useUrlHash() {
+  const [state] = useAppState();
+  return buildUrlHash(state);
+}
+
 function stateReducer(state: State, newState: Partial<State>): State {
   const percentageBase =
     "percentageBase" in newState
@@ -100,7 +105,7 @@ function stateReducer(state: State, newState: Partial<State>): State {
   return { ...state, percentageBase, barType, barWeight };
 }
 
-export function useAppState() {
+export function useRawAppState() {
   const [state, dispatch] = useReducer(
     stateReducer,
     undefined,
@@ -139,4 +144,23 @@ export function useAppState() {
   }, []);
 
   return [state, dispatch] as const;
+}
+
+const AppContext = createContext<ReturnType<typeof useRawAppState> | null>(
+  null
+);
+
+export function AppContextProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const state = useRawAppState();
+  return <AppContext value={state}>{children}</AppContext>;
+}
+
+export function useAppState() {
+  const ctx = use(AppContext);
+  if (!ctx) throw new Error("useAppState must be used within AppStateProvider");
+  return ctx;
 }

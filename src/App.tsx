@@ -22,15 +22,16 @@ import { numbdfined } from "./utils";
 import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
 import BarView from "./BarView";
 import { Link, Route, Routes } from "react-router";
-import { useAppState } from "./context";
+import { AppContextProvider, useAppState, useUrlHash } from "./context";
 
 function Nav() {
+  const computeHash = useUrlHash();
   return (
     <nav>
       <ul>
         <li>
           <strong>
-            <Link to="/">Compute!</Link>
+            <Link to={`/${computeHash}`}>Compute!</Link>
           </strong>
         </li>
       </ul>
@@ -48,14 +49,14 @@ function Nav() {
 
 export default function App() {
   return (
-    <>
+    <AppContextProvider>
       <Nav />
       <Routes>
         <Route path="/" element={<ComputerRoute />} />
         <Route path="/mass" element={<MassConfig />} />
         <Route path="/maxes" element={<MaxesEditor />} />
       </Routes>
-    </>
+    </AppContextProvider>
   );
 }
 
