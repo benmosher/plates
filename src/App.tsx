@@ -25,7 +25,7 @@ import {
   useSaveState,
   useUrlHash,
 } from "./context";
-import { WorkoutBuilder } from "./workouts";
+import { WorkoutBuilder } from "./workouts/builder";
 
 function Nav() {
   const computeHash = useUrlHash();
@@ -56,10 +56,8 @@ export default function App() {
       <Nav />
       <Routes>
         <Route path="/" element={<ComputerRoute />} />
-        <Route
-          path="/workout/:workoutId/builder"
-          element={<WorkoutBuilder />}
-        />
+        <Route path="/workouts/:workoutId/edit" element={<WorkoutBuilder />} />
+        <Route path="/workouts/create" element={<WorkoutBuilder />} />
         <Route path="/mass" element={<MassConfig />} />
         <Route path="/maxes" element={<MaxesEditor />} />
       </Routes>
