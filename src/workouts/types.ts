@@ -7,6 +7,7 @@ export type Workout = {
 export type Movement = {
   name: string;
   sets: readonly Set[];
+  restSeconds?: number;
 };
 
 export type Set = {

@@ -6,13 +6,19 @@ import DoubleClickConfirmButton from "../DoubleClickConfirmButton";
 import { numbdfined } from "../utils";
 import type { Movement, Prescription, Set, Workout } from "./types";
 
-import { saveWorkout } from "./db";
+import { saveWorkout, useWorkout } from "./db";
+import { useParams } from "react-router";
 
 export function WorkoutBuilder() {
+  const params = useParams<{ workoutId: string }>();
+  const workoutId = params.workoutId ? +params.workoutId : undefined;
+
+  const workout = useWorkout(workoutId ?? null);
+
   const [validating, setValidating] = useState(false);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(workout?.name ?? "");
   const [movements, updateMovements] = useImmer<[number, Movement | null][]>(
-    []
+    workout?.movements.map((m, i) => [i, m]) ?? []
   );
 
   return (
@@ -23,9 +29,8 @@ export function WorkoutBuilder() {
           setValidating(true);
           const workoutValidation = validateWorkout(formData);
           if (workoutValidation.valid) {
-            // If the workout is valid, we can save it
             try {
-              await saveWorkout(workoutValidation.value);
+              await saveWorkout({ ...workoutValidation.value, id: workoutId });
             } catch (e) {
               console.error("Failed to save workout", e);
             }
@@ -118,6 +123,15 @@ function MovementBuilder({
           }
         />
       ))}
+      <label>
+        Rest time
+        <input
+          type="number"
+          name={`movements[${index}].restSeconds`}
+          defaultValue={movement?.restSeconds ?? ""}
+          placeholder="seconds"
+        />
+      </label>
       <fieldset className="grid">
         <button
           type="button"
@@ -288,6 +302,20 @@ function validateMovement(
   const reps = formData.getAll(`movements[${index}].sets[].reps`);
   const counts = formData.getAll(`movements[${index}].sets[].count`);
   const prescribeds = formData.getAll(`movements[${index}].sets[].prescribed`);
+  const restSecondsRaw = formData
+    .get(`movements[${index}].restSeconds`)
+    ?.toString();
+
+  let restSeconds: number | undefined = undefined;
+  if (restSecondsRaw != null) {
+    restSeconds = +restSecondsRaw;
+    if (isNaN(restSeconds) || restSeconds < 0) {
+      errors.push({
+        name: `movements[${index}].restSeconds`,
+        message: "Rest time must be a non-negative number",
+      });
+    }
+  }
 
   const sets: Set[] = [];
   reps.forEach((r, i) => {
@@ -313,7 +341,7 @@ function validateMovement(
   }
 
   if (errors.length > 0) return { valid: false, errors };
-  else return { valid: true, value: { name, sets } };
+  else return { valid: true, value: { name, sets, restSeconds } };
 }
 
 function validateSet(
