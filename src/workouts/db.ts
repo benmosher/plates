@@ -30,29 +30,33 @@ function openDb(): Promise<IDBDatabase> {
 
 export async function saveWorkout(
   workout: Workout & { id?: number }
-): Promise<{ id: number }> {
+): Promise<Workout & { id: number }> {
   const db = await openDb();
   const tx = db.transaction("workouts", "readwrite");
   const store = tx.objectStore("workouts");
   const request = store.put(workout);
 
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => {
-      const id = request.result as number;
+  const savePromise = new Promise<Workout & { id: number }>(
+    (resolve, reject) => {
+      request.onsuccess = () => {
+        const id = request.result as number;
 
-      CACHE.set(id, Promise.resolve({ ...workout, id }));
+        CACHE.set(id, savePromise);
 
-      const subs = subscriptionCache.get(id);
-      if (subs) {
-        subs.forEach((cb) => cb());
-      }
+        const subs = subscriptionCache.get(id);
+        if (subs) {
+          subs.forEach((cb) => cb());
+        }
 
-      resolve({ id });
-    };
-    request.onerror = () => {
-      reject(request.error);
-    };
-  });
+        resolve({ ...workout, id });
+      };
+      request.onerror = () => {
+        reject(request.error);
+      };
+    }
+  );
+
+  return savePromise;
 }
 
 export async function loadWorkout(id: number): Promise<Workout | null> {
@@ -70,12 +74,13 @@ export async function loadWorkout(id: number): Promise<Workout | null> {
     };
   });
 }
+const EMPTY_PROMISE = Promise.resolve(null);
 
 const CACHE: Map<number, Promise<Workout | null>> = new Map();
 const subscriptionCache: Map<number, Set<() => void>> = new Map();
 function load(id: number | null): Promise<Workout | null> {
   if (id == null) {
-    return Promise.resolve(null);
+    return EMPTY_PROMISE;
   }
 
   let promise = CACHE.get(id);
