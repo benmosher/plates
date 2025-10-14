@@ -1,3 +1,4 @@
+import { use } from "react";
 import { Workout } from "./types";
 
 function openDb(): Promise<IDBDatabase> {
@@ -35,10 +36,39 @@ export async function saveWorkout(workout: Workout): Promise<{ id: number }> {
 
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
-      resolve({ id: request.result as number });
+      const id = request.result as number;
+      delete CACHE[id];
+      resolve({ id });
     };
     request.onerror = () => {
       reject(request.error);
     };
   });
+}
+
+export async function loadWorkout(id: number): Promise<Workout | null> {
+  const db = await openDb();
+  const tx = db.transaction("workouts", "readonly");
+  const store = tx.objectStore("workouts");
+  const request = store.get(id);
+
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => {
+      resolve(request.result || null);
+    };
+    request.onerror = () => {
+      reject(request.error);
+    };
+  });
+}
+
+const CACHE: Record<number, Promise<Workout | null>> = {};
+
+export function useWorkout(id: number): Workout | null {
+  let loadingPromise = CACHE[id];
+  if (!loadingPromise) {
+    loadingPromise = loadWorkout(id);
+    CACHE[id] = loadingPromise;
+  }
+  return use(loadingPromise);
 }
