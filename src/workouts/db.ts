@@ -1,4 +1,4 @@
-import { use } from "react";
+import { use, useSyncExternalStore } from "react";
 import { Workout } from "./types";
 
 function openDb(): Promise<IDBDatabase> {
@@ -28,7 +28,9 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveWorkout(workout: Workout): Promise<{ id: number }> {
+export async function saveWorkout(
+  workout: Workout & { id?: number }
+): Promise<{ id: number }> {
   const db = await openDb();
   const tx = db.transaction("workouts", "readwrite");
   const store = tx.objectStore("workouts");
@@ -37,7 +39,14 @@ export async function saveWorkout(workout: Workout): Promise<{ id: number }> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       const id = request.result as number;
-      delete CACHE[id];
+
+      CACHE.set(id, Promise.resolve({ ...workout, id }));
+
+      const subs = subscriptionCache.get(id);
+      if (subs) {
+        subs.forEach((cb) => cb());
+      }
+
       resolve({ id });
     };
     request.onerror = () => {
@@ -62,13 +71,49 @@ export async function loadWorkout(id: number): Promise<Workout | null> {
   });
 }
 
-const CACHE: Record<number, Promise<Workout | null>> = {};
-
-export function useWorkout(id: number): Workout | null {
-  let loadingPromise = CACHE[id];
-  if (!loadingPromise) {
-    loadingPromise = loadWorkout(id);
-    CACHE[id] = loadingPromise;
+const CACHE: Map<number, Promise<Workout | null>> = new Map();
+const subscriptionCache: Map<number, Set<() => void>> = new Map();
+function load(id: number | null): Promise<Workout | null> {
+  if (id == null) {
+    return Promise.resolve(null);
   }
-  return use(loadingPromise);
+
+  let promise = CACHE.get(id);
+  if (!promise) {
+    promise = loadWorkout(id);
+    CACHE.set(id, promise);
+  }
+  return promise;
+}
+
+function subscribe(id: number | null, callback: () => void) {
+  if (id == null) {
+    return () => {};
+  }
+
+  let subs = subscriptionCache.get(id);
+  if (!subs) {
+    subs = new Set();
+    subscriptionCache.set(id, subs);
+  }
+  subs.add(callback);
+  return () => {
+    subs?.delete(callback);
+    if (subs?.size === 0) {
+      subscriptionCache.delete(id);
+    }
+  };
+}
+
+export function useWorkout(id: number | null): Workout | null {
+  let promise = useSyncExternalStore(
+    subscribe.bind(null, id),
+    load.bind(null, id)
+  );
+
+  if (id == null) {
+    return null;
+  }
+
+  return use(promise);
 }
