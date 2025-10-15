@@ -1,6 +1,6 @@
 import { expect, describe, test } from "vitest";
 
-import { parseSeconds } from "./types";
+import { parseSeconds, stringifySeconds } from "./types";
 
 describe("parse time", () => {
   test("should parse seconds", () => {
@@ -24,5 +24,25 @@ describe("parse time", () => {
 
   test("should return null for invalid input", () => {
     expect(parseSeconds("invalid")).toBeNull();
+  });
+
+  test("parses multiple resolutions", () => {
+    expect(parseSeconds("2m30s")).toEqual(150);
+    expect(parseSeconds("2min 30sec")).toEqual(150);
+    expect(parseSeconds("1h30m")).toEqual(5400);
+    expect(parseSeconds("1 hour 30 minutes")).toEqual(5400);
+    expect(parseSeconds("2h15m30s")).toEqual(8130);
+  });
+});
+
+describe("stringify time", () => {
+  test("should stringify seconds", () => {
+    expect(stringifySeconds(30)).toEqual("30s");
+    expect(stringifySeconds(90)).toEqual("1m30s");
+    expect(stringifySeconds(3600)).toEqual("1h");
+    expect(stringifySeconds(3665)).toEqual("1h1m5s");
+    expect(stringifySeconds(7320)).toEqual("2h2m");
+    expect(stringifySeconds(0)).toEqual("");
+    expect(stringifySeconds(undefined)).toEqual("");
   });
 });

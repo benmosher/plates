@@ -33,7 +33,6 @@ export type Weight = {
   weight: number;
 };
 
-const timePattern = /^(\d+)\s?([smh])/;
 export function parseSeconds(value: string): number | null {
   // try straight parse of numerals
   const n = Number(value);
@@ -42,21 +41,52 @@ export function parseSeconds(value: string): number | null {
   }
 
   // try regex parse using first letter as unit
-  const match = value.match(timePattern);
-  if (match) {
+  const timePattern = /(\d+)\s?([smh])/g;
+  let match = timePattern.exec(value);
+  let total = 0;
+  while (match) {
     const num = Number(match[1]);
     const unit = match[2];
     if (!isNaN(num)) {
       switch (unit) {
         case "s":
-          return num;
+          total += num;
+          break;
         case "m":
-          return num * 60;
+          total += num * 60;
+          break;
         case "h":
-          return num * 3600;
+          total += num * 3600;
       }
     }
+    match = timePattern.exec(value);
   }
 
-  return null;
+  if (total > 0) {
+    return total;
+  } else {
+    return null;
+  }
+}
+
+export function stringifySeconds(seconds: number | undefined): string {
+  let string = "";
+  if (!seconds) {
+    return string;
+  }
+  let rest = seconds;
+  if (rest >= 3600) {
+    const hours = Math.floor(rest / 3600);
+    rest = rest % 3600;
+    string += `${hours}h`;
+  }
+  if (rest >= 60) {
+    const minutes = Math.floor(rest / 60);
+    rest = rest % 60;
+    string += `${minutes}m`;
+  }
+  if (rest > 0) {
+    string += `${rest}s`;
+  }
+  return string;
 }
