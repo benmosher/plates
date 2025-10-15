@@ -8,6 +8,8 @@ export type Movement = {
   name: string;
   sets: readonly Set[];
   restSeconds?: number;
+  /** complete within this time */
+  withinSeconds?: number;
 };
 
 export type Set = {
@@ -16,8 +18,6 @@ export type Set = {
   prescribed?: Prescription;
   /** if absent, assume 1 */
   count?: number;
-  /** if defined, complete within this time */
-  withinSeconds?: number;
 };
 
 export type Prescription = Percentage | Weight;
@@ -33,7 +33,10 @@ export type Weight = {
   weight: number;
 };
 
-export function parseSeconds(value: string): number | null {
+export function parseSeconds(value: string | null | undefined): number | null {
+  if (!value) {
+    return null;
+  }
   // try straight parse of numerals
   const n = Number(value);
   if (!isNaN(n)) {

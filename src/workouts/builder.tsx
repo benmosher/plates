@@ -5,6 +5,7 @@ import { HiddenDeleteFieldset } from "../HiddenDeleteFieldset";
 import DoubleClickConfirmButton from "../DoubleClickConfirmButton";
 import { numbdfined } from "../utils";
 import type { Movement, Prescription, Set, Workout } from "./types";
+import { parseSeconds, stringifySeconds } from "./types";
 
 import { saveWorkout, useWorkout } from "./db";
 import { useParams } from "react-router";
@@ -30,7 +31,11 @@ export function WorkoutBuilder() {
           const workoutValidation = validateWorkout(formData);
           if (workoutValidation.valid) {
             try {
-              await saveWorkout({ ...workoutValidation.value, id: workoutId });
+              let toSave: Workout & { id?: number } = workoutValidation.value;
+              if (workoutId) {
+                toSave = { ...toSave, id: workoutId };
+              }
+              await saveWorkout(toSave);
             } catch (e) {
               console.error("Failed to save workout", e);
             }
@@ -88,6 +93,24 @@ export function WorkoutBuilder() {
   );
 }
 
+function TimeInput(props: {
+  name?: string;
+  defaultValue?: number;
+  placeholder?: string;
+}) {
+  const [value, setValue] = useState(stringifySeconds(props.defaultValue));
+  return (
+    <input
+      type="text"
+      name={props.name}
+      value={value}
+      placeholder={props.placeholder ?? "e.g. 2m30s"}
+      onChange={(e) => setValue(e.target.value)}
+      aria-invalid={value ? !parseSeconds(value) : undefined}
+    />
+  );
+}
+
 function MovementBuilder({
   movement,
   index,
@@ -125,11 +148,16 @@ function MovementBuilder({
       ))}
       <label>
         Rest time
-        <input
-          type="number"
+        <TimeInput
           name={`movements[${index}].restSeconds`}
-          defaultValue={movement?.restSeconds ?? ""}
-          placeholder="seconds"
+          defaultValue={movement?.restSeconds}
+        />
+      </label>
+      <label>
+        Complete within
+        <TimeInput
+          name={`movements[${index}].withinSeconds`}
+          defaultValue={movement?.withinSeconds}
         />
       </label>
       <fieldset className="grid">
@@ -302,20 +330,14 @@ function validateMovement(
   const reps = formData.getAll(`movements[${index}].sets[].reps`);
   const counts = formData.getAll(`movements[${index}].sets[].count`);
   const prescribeds = formData.getAll(`movements[${index}].sets[].prescribed`);
-  const restSecondsRaw = formData
-    .get(`movements[${index}].restSeconds`)
-    ?.toString();
+  const restSeconds =
+    parseSeconds(formData.get(`movements[${index}].restSeconds`)?.toString()) ??
+    undefined;
 
-  let restSeconds: number | undefined = undefined;
-  if (restSecondsRaw != null) {
-    restSeconds = +restSecondsRaw;
-    if (isNaN(restSeconds) || restSeconds < 0) {
-      errors.push({
-        name: `movements[${index}].restSeconds`,
-        message: "Rest time must be a non-negative number",
-      });
-    }
-  }
+  const withinSeconds =
+    parseSeconds(
+      formData.get(`movements[${index}].withinSeconds`)?.toString()
+    ) ?? undefined;
 
   const sets: Set[] = [];
   reps.forEach((r, i) => {
@@ -341,7 +363,8 @@ function validateMovement(
   }
 
   if (errors.length > 0) return { valid: false, errors };
-  else return { valid: true, value: { name, sets, restSeconds } };
+  else
+    return { valid: true, value: { name, sets, restSeconds, withinSeconds } };
 }
 
 function validateSet(
@@ -359,13 +382,6 @@ function validateSet(
       message: "Reps must be a number",
     });
   }
-  if (!+count) {
-    errors.push({
-      name: `movements[${movementIndex}].sets[].count`,
-      index,
-      message: "Sets must be a number",
-    });
-  }
   const prescription = prescribed ? parsePrescription(prescribed) : null;
   if (prescribed && !prescription) {
     errors.push({
@@ -380,7 +396,7 @@ function validateSet(
       valid: true,
       value: {
         reps: +reps,
-        count: +count,
+        count: !count || isNaN(+count) ? undefined : +count,
         prescribed: prescription ?? undefined,
       },
     };
