@@ -161,6 +161,20 @@ function BarComputer({
           </datalist>
           <fieldset>
             <fieldset role="group">
+              <button
+                type="button"
+                className="secondary"
+                disabled={activeBar?.sliderMinStep == null}
+                style={{ width: "auto", paddingInline: "0.5rem" }}
+                onClick={() => {
+                  const nudge = activeBar!.sliderMinStep!;
+                  const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
+                  if (weightMin != null && prev >= weightMin)
+                    dispatchState({ target: prev });
+                }}
+              >
+                {activeBar?.sliderMinStep != null ? `-${activeBar.sliderMinStep}` : "-"}
+              </button>
               <input
                 id="target-number"
                 type="number"
@@ -211,27 +225,26 @@ function BarComputer({
                   ))}
                 </optgroup>
               </select>
-            </fieldset>
-            <fieldset style={{ display: "flex", alignItems: "center" }}>
               <button
                 type="button"
                 className="secondary"
                 disabled={activeBar?.sliderMinStep == null}
-                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: 0 }}
+                style={{ width: "auto", paddingInline: "0.5rem" }}
                 onClick={() => {
                   const nudge = activeBar!.sliderMinStep!;
-                  const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
-                  if (weightMin != null && prev >= weightMin)
-                    dispatchState({ target: prev });
+                  const next = Math.floor((target ?? 0) / nudge) * nudge + nudge;
+                  if (weightMax != null && next <= weightMax)
+                    dispatchState({ target: next });
                 }}
               >
-                {activeBar?.sliderMinStep != null ? `-${activeBar.sliderMinStep}` : "-"}
+                {activeBar?.sliderMinStep != null ? `${activeBar.sliderMinStep}+` : "+"}
               </button>
-              <label style={{ flex: 1, margin: 0 }}>
+            </fieldset>
+            <fieldset>
+              <label>
                 <input
                   id="target-range"
                   type="range"
-                  style={{ margin: 0, translate: "0 4px" }}
                   list="target-options"
                   min={weightMin}
                   max={weightMax}
@@ -242,20 +255,6 @@ function BarComputer({
                   }
                 />
               </label>
-              <button
-                type="button"
-                className="secondary"
-                disabled={activeBar?.sliderMinStep == null}
-                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: 0 }}
-                onClick={() => {
-                  const nudge = activeBar!.sliderMinStep!;
-                  const next = Math.floor((target ?? 0) / nudge) * nudge + nudge;
-                  if (weightMax != null && next <= weightMax)
-                    dispatchState({ target: next });
-                }}
-              >
-                {activeBar?.sliderMinStep != null ? `${activeBar.sliderMinStep}+` : "+"}
-              </button>
             </fieldset>
           </fieldset>
         </form>
