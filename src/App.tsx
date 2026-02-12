@@ -212,20 +212,47 @@ function BarComputer({
                 </optgroup>
               </select>
             </fieldset>
-            <label>
-              <input
-                id="target-range"
-                type="range"
-                list="target-options"
-                min={weightMin}
-                max={weightMax}
-                step={weightStep}
-                value={target ?? ""}
-                onChange={(e) =>
-                  dispatchState({ target: numbdfined(e.target.value) })
-                }
-              />
-            </label>
+            <fieldset style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className="secondary"
+                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: 0 }}
+                onClick={() => {
+                  const prev = Math.ceil((target ?? 0) / 5) * 5 - 5;
+                  if (weightMin != null && prev >= weightMin)
+                    dispatchState({ target: prev });
+                }}
+              >
+                -5
+              </button>
+              <label style={{ flex: 1, margin: 0 }}>
+                <input
+                  id="target-range"
+                  type="range"
+                  style={{ margin: 0, translate: "0 2px" }}
+                  list="target-options"
+                  min={weightMin}
+                  max={weightMax}
+                  step={weightStep}
+                  value={target ?? ""}
+                  onChange={(e) =>
+                    dispatchState({ target: numbdfined(e.target.value) })
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                className="secondary"
+                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: 0 }}
+                onClick={() => {
+                  const next = Math.floor((target ?? 0) / 5) * 5 + 5;
+                  if (weightMax != null && next <= weightMax)
+                    dispatchState({ target: next });
+                }}
+              >
+                5+
+              </button>
+            </fieldset>
           </fieldset>
         </form>
       </section>
