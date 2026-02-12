@@ -66,8 +66,15 @@ export default function BarEditor(props: {
             placeholder="(no max load)"
             aria-invalid={invalidator("maxLoad", true)}
           />
+          <input
+            type="number"
+            value={bar.sliderMinStep}
+            onChange={fieldSetter("sliderMinStep")}
+            placeholder="(no nudge)"
+            aria-invalid={invalidator("sliderMinStep", true)}
+          />
         </fieldset>
-        <small>Weight / Type / Max Plate / Max Load</small>
+        <small>Weight / Type / Max Plate / Max Load / Nudge</small>
         <fieldset className="grid">
           <input
             type="submit"

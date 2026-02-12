@@ -212,24 +212,26 @@ function BarComputer({
                 </optgroup>
               </select>
             </fieldset>
-            <fieldset style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <fieldset style={{ display: "flex", alignItems: "center" }}>
               <button
                 type="button"
                 className="secondary"
-                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: 0 }}
+                disabled={activeBar?.sliderMinStep == null}
+                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: -3 }}
                 onClick={() => {
-                  const prev = Math.ceil((target ?? 0) / 5) * 5 - 5;
+                  const nudge = activeBar!.sliderMinStep!;
+                  const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
                   if (weightMin != null && prev >= weightMin)
                     dispatchState({ target: prev });
                 }}
               >
-                -5
+                {activeBar?.sliderMinStep != null ? `-${activeBar.sliderMinStep}` : "-"}
               </button>
-              <label style={{ flex: 1, margin: 0 }}>
+              <label style={{ flex: 1, margin: 0, zIndex: -1 }}>
                 <input
                   id="target-range"
                   type="range"
-                  style={{ margin: 0, translate: "0 2px" }}
+                  style={{ margin: 0, translate: "0 4px" }}
                   list="target-options"
                   min={weightMin}
                   max={weightMax}
@@ -243,14 +245,16 @@ function BarComputer({
               <button
                 type="button"
                 className="secondary"
+                disabled={activeBar?.sliderMinStep == null}
                 style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: 0 }}
                 onClick={() => {
-                  const next = Math.floor((target ?? 0) / 5) * 5 + 5;
+                  const nudge = activeBar!.sliderMinStep!;
+                  const next = Math.floor((target ?? 0) / nudge) * nudge + nudge;
                   if (weightMax != null && next <= weightMax)
                     dispatchState({ target: next });
                 }}
               >
-                5+
+                {activeBar?.sliderMinStep != null ? `${activeBar.sliderMinStep}+` : "+"}
               </button>
             </fieldset>
           </fieldset>
