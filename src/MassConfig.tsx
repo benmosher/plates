@@ -18,7 +18,7 @@ const RawConfig = memo(function Config() {
   const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
   const barTypes = useMemo(
     () => bars.reduce((set, b) => set.add(b.type), new Set<string>()),
-    [bars]
+    [bars],
   );
   return (
     <>

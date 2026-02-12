@@ -121,11 +121,11 @@ function BarComputer({
       determineWeightSpace(
         bars.filter(
           (b) =>
-            b.type === barType && (barWeight == null || b.weight === barWeight)
+            b.type === barType && (barWeight == null || b.weight === barWeight),
         ),
-        validPlates
+        validPlates,
       ),
-    [bars, barType, barWeight, validPlates]
+    [bars, barType, barWeight, validPlates],
   );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
@@ -143,7 +143,7 @@ function BarComputer({
   const activeBar = chooseBar(bars, deferredTarget, barType, barWeight);
   const determinedPlates = useMemo(
     () => determinePlates(deferredTarget, activeBar, validPlates),
-    [deferredTarget, activeBar, validPlates]
+    [deferredTarget, activeBar, validPlates],
   );
   const validTarget = possibleWeights.includes(deferredTarget ?? -1);
 
@@ -173,7 +173,9 @@ function BarComputer({
                     dispatchState({ target: prev });
                 }}
               >
-                {activeBar?.sliderMinStep != null ? `-${activeBar.sliderMinStep}` : "-"}
+                {activeBar?.sliderMinStep != null
+                  ? `-${activeBar.sliderMinStep}`
+                  : "-"}
               </button>
               <input
                 id="target-number"
@@ -232,12 +234,15 @@ function BarComputer({
                 style={{ width: "auto", paddingInline: "0.5rem" }}
                 onClick={() => {
                   const nudge = activeBar!.sliderMinStep!;
-                  const next = Math.floor((target ?? 0) / nudge) * nudge + nudge;
+                  const next =
+                    Math.floor((target ?? 0) / nudge) * nudge + nudge;
                   if (weightMax != null && next <= weightMax)
                     dispatchState({ target: next });
                 }}
               >
-                {activeBar?.sliderMinStep != null ? `${activeBar.sliderMinStep}+` : "+"}
+                {activeBar?.sliderMinStep != null
+                  ? `${activeBar.sliderMinStep}+`
+                  : "+"}
               </button>
             </fieldset>
             <fieldset>

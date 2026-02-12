@@ -1,9 +1,9 @@
 export function determinePlates<
-  Plate extends { weight: number; count: number }
+  Plate extends { weight: number; count: number },
 >(
   target: number | null | undefined,
   handle: { weight: number; plateThreshold?: number } | null,
-  plates: readonly Plate[]
+  plates: readonly Plate[],
 ): readonly Plate[] {
   // don't bother
   if (!target || !handle || !plates.length) return [];
@@ -20,7 +20,7 @@ export function determinePlates<
     // use as many of this plate as possible
     let countUsed = Math.min(
       plate.count,
-      Math.floor(weightLeft / plate.weight)
+      Math.floor(weightLeft / plate.weight),
     );
 
     // if none used, it was too big - move to next plate
@@ -41,7 +41,7 @@ export function determinePlates<
  * @param plates - the available plates _for one side_
  */
 export function determinePlateCombos(
-  plates: readonly { weight: number; count: number }[]
+  plates: readonly { weight: number; count: number }[],
 ): number[] {
   let loads: number[] = [0];
   for (let i = 0; i < plates.length; i++) {
@@ -50,7 +50,7 @@ export function determinePlateCombos(
     for (let usedCount = 0; usedCount < plate.count; usedCount++) {
       loads = _merge(
         loads,
-        loads.map((l) => l + loaded)
+        loads.map((l) => l + loaded),
       );
     }
   }
@@ -63,7 +63,7 @@ export function determineWeightSpace(
     maxLoad?: number;
     plateThreshold?: number;
   }[],
-  plates: readonly { weight: number; count: number }[]
+  plates: readonly { weight: number; count: number }[],
 ) {
   if (bars.length === 0) return [];
   // merge all possible spaces for all selected bars
@@ -72,7 +72,7 @@ export function determineWeightSpace(
 
 function deterimineBarWeightSpace(
   bar: { weight: number; maxLoad?: number; plateThreshold?: number },
-  plates: readonly { weight: number; count: number }[]
+  plates: readonly { weight: number; count: number }[],
 ) {
   // filter plates by threshold
   const validPlates =
@@ -124,7 +124,7 @@ export function chooseBar<Bar extends { type: string; weight: number }>(
   bars: readonly Bar[],
   target: number | null | undefined,
   type?: string | null,
-  weight?: number | null
+  weight?: number | null,
 ): Bar | null {
   // no inputs; return null
   if (target == null || bars.length === 0) return null;

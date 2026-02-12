@@ -10,7 +10,7 @@ export default memo(function BarView(props: {
   const stack = props.determinedPlates.flatMap((plate) =>
     Array.from({ length: plate.count }, (_, j) => (
       <DisplayPlate key={`${plate.weight}-${j}`} {...plate} />
-    ))
+    )),
   );
   const [{ y }, api] = useSpring(() => ({
     y: 0,
@@ -45,7 +45,7 @@ export default memo(function BarView(props: {
               <span>
                 {props.determinedPlates
                   .map((p) =>
-                    p.count > 1 ? `${p.weight}x${p.count}` : p.weight
+                    p.count > 1 ? `${p.weight}x${p.count}` : p.weight,
                   )
                   .join(", ") || "(empty)"}
               </span>

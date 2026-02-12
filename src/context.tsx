@@ -109,14 +109,14 @@ export function useRawAppState() {
   const [state, dispatch] = useReducer(
     stateReducer,
     undefined,
-    getInitialState
+    getInitialState,
   );
 
   useEffect(function listenToPopState() {
     const onPopState = () => {
       // get only the defined values from the URL
       const newState = Object.fromEntries(
-        Object.entries(getUrlState()).filter(([, v]) => v != null)
+        Object.entries(getUrlState()).filter(([, v]) => v != null),
       ) as Partial<State>;
 
       dispatch(newState);
@@ -132,7 +132,7 @@ function pushUrlState(state: State) {
   const current = getUrlState();
   if (
     Object.entries(current).every(
-      ([key, value]) => value == state[key as keyof State]
+      ([key, value]) => value == state[key as keyof State],
     )
   )
     return; // don't push a state if we're matching
@@ -149,7 +149,7 @@ export function useSaveState(state: State) {
 }
 
 const AppContext = createContext<ReturnType<typeof useRawAppState> | null>(
-  null
+  null,
 );
 
 export function AppContextProvider({

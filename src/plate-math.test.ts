@@ -11,7 +11,7 @@ import {
 function range(start: number, end: number, step = 1) {
   return Array.from(
     { length: Math.ceil((end - start) / step) + 1 },
-    (_, i) => start + i * step
+    (_, i) => start + i * step,
   );
 }
 
@@ -48,12 +48,12 @@ describe("plate math", () => {
   });
   test("fractionals", () => {
     expect(determinePlateCombos(singles([0.25, 0.5, 0.75, 1]))).toEqual(
-      range(0, 5, 0.5)
+      range(0, 5, 0.5),
     );
   });
   test("full set", () => {
     expect(
-      determinePlateCombos(singles([0.25, 0.5, 0.75, 1, 2.5, 5, 10]))
+      determinePlateCombos(singles([0.25, 0.5, 0.75, 1, 2.5, 5, 10])),
     ).toEqual(range(0, 40, 0.5));
   });
 });
@@ -62,16 +62,16 @@ describe("weight space", () => {
     expect(
       determineWeightSpace(
         [{ weight: 12.5 }],
-        singles([0.25, 0.5, 0.75, 1, 2.5, 5, 10])
-      )
+        singles([0.25, 0.5, 0.75, 1, 2.5, 5, 10]),
+      ),
     ).toEqual(range(12.5, 52.5, 0.5));
   });
   test("full set with 4 10s, with handle", () => {
     expect(
       determineWeightSpace(
         [{ weight: 12.5 }],
-        [...singles([0.25, 0.5, 0.75, 1, 2.5, 5]), { weight: 10, count: 4 }]
-      )
+        [...singles([0.25, 0.5, 0.75, 1, 2.5, 5]), { weight: 10, count: 4 }],
+      ),
     ).toEqual(range(12.5, 112.5, 0.5));
   });
 });

@@ -109,7 +109,7 @@ export const INITIAL_MAXES: readonly Max[] = [
 function initializeStore<T>(
   txn: IDBTransaction,
   storeName: string,
-  defaultData: readonly T[]
+  defaultData: readonly T[],
 ): Promise<readonly T[]> {
   const store = txn.objectStore(storeName);
   const request = store.getAll();
@@ -149,7 +149,7 @@ function initializeDatabase(): Promise<void> {
           for (const plate of plates) {
             PLATE_MAP.set(plate.weight, plate);
           }
-        }
+        },
       );
       const initBars = initializeStore(txn, "bars", INITIAL_BARS).then(
         (bars) => {
@@ -157,7 +157,7 @@ function initializeDatabase(): Promise<void> {
           for (const bar of bars) {
             BAR_MAP.set(bar.idx, bar);
           }
-        }
+        },
       );
 
       const initMaxes = new Promise<void>((resolveMaxes, rejectMaxes) => {
@@ -195,7 +195,7 @@ function initializeDatabase(): Promise<void> {
 
       Promise.all([initPlates, initBars, initMaxes]).then(
         () => resolve(),
-        reject
+        reject,
       );
     };
 
@@ -374,7 +374,7 @@ export function useMassStorage(): MassStorage {
   return useMemo(
     () => ({
       plates: Array.from(store.plates.values()).toSorted(
-        (a, b) => a.weight - b.weight
+        (a, b) => a.weight - b.weight,
       ),
       bars: Array.from(store.bars.values()).toSorted((a, b) => a.idx - b.idx),
       maxes: Array.from(store.maxes.values()).toSorted((a, b) => a.id! - b.id!),
@@ -384,6 +384,6 @@ export function useMassStorage(): MassStorage {
       putMax,
       deleteMax,
     }),
-    [store, putPlate, putBar, deleteBar, putMax]
+    [store, putPlate, putBar, deleteBar, putMax],
   );
 }
