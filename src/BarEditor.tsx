@@ -25,6 +25,7 @@ export default function BarEditor(props: {
   const invalidator = (field: keyof Bar, optional?: boolean) => {
     if (bar[field] == props.bar[field]) return undefined;
     if (bar[field] == null) return true; // invalid
+    if (typeof bar[field] == "number" && bar[field] < 0) return true; // invalid
     if (!bar[field]) return !optional || bar[field] != null;
     return false; // valid (not invalid)
   };
@@ -41,6 +42,7 @@ export default function BarEditor(props: {
         <fieldset role="group">
           <input
             type="number"
+            min={0}
             onChange={fieldSetter("weight")}
             value={bar.weight}
             aria-invalid={invalidator("weight")}
@@ -54,6 +56,7 @@ export default function BarEditor(props: {
           />
           <input
             type="number"
+            min={0}
             value={bar.plateThreshold}
             onChange={fieldSetter("plateThreshold")}
             placeholder="(no max plate)"
@@ -61,6 +64,7 @@ export default function BarEditor(props: {
           />
           <input
             type="number"
+            min={0}
             value={bar.maxLoad}
             onChange={fieldSetter("maxLoad")}
             placeholder="(no max load)"
@@ -68,6 +72,7 @@ export default function BarEditor(props: {
           />
           <input
             type="number"
+            min={0}
             value={bar.sliderMinStep}
             onChange={fieldSetter("sliderMinStep")}
             placeholder="(no nudge)"
