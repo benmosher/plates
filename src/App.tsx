@@ -217,7 +217,7 @@ function BarComputer({
                 type="button"
                 className="secondary"
                 disabled={activeBar?.sliderMinStep == null}
-                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: -3 }}
+                style={{ width: "2rem", height: "2rem", borderRadius: "50%", padding: 0, margin: 0 }}
                 onClick={() => {
                   const nudge = activeBar!.sliderMinStep!;
                   const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
@@ -227,7 +227,7 @@ function BarComputer({
               >
                 {activeBar?.sliderMinStep != null ? `-${activeBar.sliderMinStep}` : "-"}
               </button>
-              <label style={{ flex: 1, margin: 0, zIndex: -1 }}>
+              <label style={{ flex: 1, margin: 0 }}>
                 <input
                   id="target-range"
                   type="range"
