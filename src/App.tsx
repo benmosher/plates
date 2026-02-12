@@ -15,6 +15,7 @@ import {
   INITIAL_MAXES,
 } from "./plate-db";
 import MassConfig from "./MassConfig";
+import { useAutoRepeat } from "./useAutoRepeat";
 import { numbdfined } from "./utils";
 import { HiddenDeleteFieldset } from "./HiddenDeleteFieldset";
 import BarView from "./BarView";
@@ -147,6 +148,21 @@ function BarComputer({
   );
   const validTarget = possibleWeights.includes(deferredTarget ?? -1);
 
+  const nudgeDown = useAutoRepeat(() => {
+    const nudge = activeBar?.sliderMinStep;
+    if (nudge == null) return;
+    const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
+    if (weightMin != null && prev >= weightMin)
+      dispatchState({ target: prev });
+  });
+  const nudgeUp = useAutoRepeat(() => {
+    const nudge = activeBar?.sliderMinStep;
+    if (nudge == null) return;
+    const next = Math.floor((target ?? 0) / nudge) * nudge + nudge;
+    if (weightMax != null && next <= weightMax)
+      dispatchState({ target: next });
+  });
+
   return (
     <>
       <BarView determinedPlates={determinedPlates} bar={activeBar} />
@@ -166,12 +182,7 @@ function BarComputer({
                 className="secondary"
                 disabled={activeBar?.sliderMinStep == null}
                 style={{ width: "auto", paddingInline: "0.5rem" }}
-                onClick={() => {
-                  const nudge = activeBar!.sliderMinStep!;
-                  const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
-                  if (weightMin != null && prev >= weightMin)
-                    dispatchState({ target: prev });
-                }}
+                {...nudgeDown}
               >
                 {activeBar?.sliderMinStep != null
                   ? `-${activeBar.sliderMinStep}`
@@ -232,13 +243,7 @@ function BarComputer({
                 className="secondary"
                 disabled={activeBar?.sliderMinStep == null}
                 style={{ width: "auto", paddingInline: "0.5rem" }}
-                onClick={() => {
-                  const nudge = activeBar!.sliderMinStep!;
-                  const next =
-                    Math.floor((target ?? 0) / nudge) * nudge + nudge;
-                  if (weightMax != null && next <= weightMax)
-                    dispatchState({ target: next });
-                }}
+                {...nudgeUp}
               >
                 {activeBar?.sliderMinStep != null
                   ? `${activeBar.sliderMinStep}+`
