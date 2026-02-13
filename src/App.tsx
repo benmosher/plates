@@ -8,6 +8,7 @@ import { useDeferredValue, useMemo } from "react";
 import { useMassStorage, Bar, Max, Plate } from "./plate-db";
 import MassConfig from "./MassConfig";
 import { useAutoRepeat } from "./useAutoRepeat";
+import { useWeightSet } from "./useWeightSet";
 import { numbdfined } from "./utils";
 import { HiddenDeleteFieldset } from "./HiddenDeleteFieldset";
 import BarView from "./BarView";
@@ -124,6 +125,10 @@ function BarComputer({
   );
   const validTarget = possibleWeights.includes(deferredTarget ?? -1);
 
+  const weightSet = useWeightSet();
+  const hasTarget = target != null;
+  const inWeightSet = hasTarget && weightSet.weights.includes(target);
+
   const nudgeDown = useAutoRepeat(() => {
     const nudge = activeBar?.sliderMinStep;
     if (nudge == null) return;
@@ -173,6 +178,12 @@ function BarComputer({
         </optgroup>
       </select>
       <BarView determinedPlates={determinedPlates} bar={activeBar} />
+      <WeightSet
+        weights={weightSet.weights}
+        target={target}
+        dispatchState={dispatchState}
+        onRemove={weightSet.remove}
+      />
       <section>
         <form>
           <datalist id="target-options">
@@ -182,48 +193,64 @@ function BarComputer({
               </option>
             ))}
           </datalist>
-          <fieldset role="group">
-            {activeBar?.sliderMinStep != null && (
-              <>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "start" }}>
+            <fieldset role="group" style={{ flex: 1 }}>
+              {activeBar?.sliderMinStep != null && (
+                <>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={activeBar?.sliderMinStep == null}
+                    style={{ width: "auto", paddingInline: "0.5rem" }}
+                    {...nudgeDown}
+                  >
+                    -{activeBar.sliderMinStep}
+                  </button>
+                </>
+              )}
+              <input
+                id="target-number"
+                type="number"
+                placeholder="work weight"
+                value={target ?? ""}
+                min={weightMin}
+                max={weightMax}
+                step={weightStep}
+                onFocus={clear}
+                onKeyDown={onEnterBlur}
+                onBlur={scrollToTop}
+                onChange={(e) =>
+                  dispatchState({ target: numbdfined(e.target.value) })
+                }
+                aria-invalid={!validTarget}
+              />
+              {activeBar?.sliderMinStep != null && (
                 <button
                   type="button"
                   className="secondary"
                   disabled={activeBar?.sliderMinStep == null}
                   style={{ width: "auto", paddingInline: "0.5rem" }}
-                  {...nudgeDown}
+                  {...nudgeUp}
                 >
-                  -{activeBar.sliderMinStep}
+                  {activeBar.sliderMinStep}+
                 </button>
-              </>
-            )}
-            <input
-              id="target-number"
-              type="number"
-              placeholder="work weight"
-              value={target ?? ""}
-              min={weightMin}
-              max={weightMax}
-              step={weightStep}
-              onFocus={clear}
-              onKeyDown={onEnterBlur}
-              onBlur={scrollToTop}
-              onChange={(e) =>
-                dispatchState({ target: numbdfined(e.target.value) })
-              }
-              aria-invalid={!validTarget}
-            />
-            {activeBar?.sliderMinStep != null && (
+              )}
+            </fieldset>
+            {hasTarget && (
               <button
                 type="button"
                 className="secondary"
-                disabled={activeBar?.sliderMinStep == null}
-                style={{ width: "auto", paddingInline: "0.5rem" }}
-                {...nudgeUp}
+                style={{ width: "auto", paddingInline: "0.75rem" }}
+                onClick={() =>
+                  inWeightSet
+                    ? weightSet.remove(target)
+                    : weightSet.add(target)
+                }
               >
-                {activeBar.sliderMinStep}+
+                {inWeightSet ? "\u2212" : "+"}
               </button>
             )}
-          </fieldset>
+          </div>
           <input
             id="target-range"
             type="range"
@@ -302,6 +329,36 @@ function BarComputer({
           </small>
         </form>
       </section>
+    </>
+  );
+}
+
+function WeightSet({
+  weights,
+  target,
+  dispatchState,
+  onRemove,
+}: {
+  weights: number[];
+  target: number | undefined | null;
+  dispatchState: (action: { target: number }) => void;
+  onRemove: (weight: number) => void;
+}) {
+  if (!weights.length) return null;
+
+  return (
+    <>
+      {weights.map((w) => (
+        <HiddenDeleteFieldset key={w} onDelete={() => onRemove(w)}>
+          <button
+            type="button"
+            className={w === target ? undefined : "secondary"}
+            onClick={() => dispatchState({ target: w })}
+          >
+            {w}
+          </button>
+        </HiddenDeleteFieldset>
+      ))}
     </>
   );
 }
