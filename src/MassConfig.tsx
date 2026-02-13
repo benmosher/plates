@@ -1,4 +1,4 @@
-import { memo, Suspense, useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 import BarEditor from "./BarEditor";
 import type { Bar, BarInput, Plate } from "./plate-db";
@@ -7,15 +7,7 @@ import { numbdfined } from "./utils";
 
 const PLATE_COUNT_MAX = 20; // arbitrary max to avoid overloading the plate space computation
 
-export default function Config() {
-  return (
-    <Suspense fallback={null}>
-      <RawConfig />
-    </Suspense>
-  );
-}
-
-const RawConfig = memo(function Config() {
+const Config = memo(function Config() {
   const { plates, bars, putPlate, putBar, deleteBar } = useMassStorage();
   const barTypes = useMemo(
     () => bars.reduce((set, b) => set.add(b.type), new Set<string>()),
@@ -127,6 +119,8 @@ const RawConfig = memo(function Config() {
     </>
   );
 });
+
+export default Config;
 
 function PlateLimitsMatrix({
   plates,

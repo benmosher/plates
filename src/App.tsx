@@ -4,16 +4,8 @@ import {
   determinePlates,
   determineWeightSpace,
 } from "./plate-math";
-import { Suspense, useDeferredValue, useMemo } from "react";
-import {
-  useMassStorage,
-  Bar,
-  Max,
-  Plate,
-  INITIAL_BARS,
-  INITIAL_PLATES,
-  INITIAL_MAXES,
-} from "./plate-db";
+import { useDeferredValue, useMemo } from "react";
+import { useMassStorage, Bar, Max, Plate } from "./plate-db";
 import MassConfig from "./MassConfig";
 import { useAutoRepeat } from "./useAutoRepeat";
 import { numbdfined } from "./utils";
@@ -64,22 +56,6 @@ export default function App() {
 }
 
 function ComputerRoute() {
-  return (
-    <Suspense
-      fallback={
-        <BarComputer
-          plates={INITIAL_PLATES}
-          bars={INITIAL_BARS}
-          maxes={INITIAL_MAXES}
-        />
-      }
-    >
-      <LoadedBarComputer />
-    </Suspense>
-  );
-}
-
-function LoadedBarComputer() {
   const { plates, bars, maxes } = useMassStorage();
   return <BarComputer plates={plates} bars={bars} maxes={maxes} />;
 }
@@ -331,14 +307,6 @@ function BarComputer({
 }
 
 function MaxesEditor() {
-  return (
-    <Suspense fallback={null}>
-      <RawMaxesEditor />
-    </Suspense>
-  );
-}
-
-function RawMaxesEditor() {
   const { maxes, putMax, deleteMax } = useMassStorage();
   return (
     <details open>

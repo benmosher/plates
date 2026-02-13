@@ -1,6 +1,6 @@
 // create a database
 
-import { use, useMemo, useSyncExternalStore } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 export interface Plate {
   count?: number;
@@ -148,7 +148,6 @@ function initializeDatabase(): Promise<void> {
 
       const initPlates = initializeStore(txn, "plates", INITIAL_PLATES).then(
         (plates) => {
-          // populate the in-memory map
           for (const plate of plates) {
             PLATE_MAP.set(plate.weight, plate);
           }
@@ -156,7 +155,6 @@ function initializeDatabase(): Promise<void> {
       );
       const initBars = initializeStore(txn, "bars", INITIAL_BARS).then(
         (bars) => {
-          // populate the in-memory map
           for (const bar of bars) {
             BAR_MAP.set(bar.idx, bar);
           }
@@ -196,10 +194,11 @@ function initializeDatabase(): Promise<void> {
         }
       });
 
-      Promise.all([initPlates, initBars, initMaxes]).then(
-        () => resolve(),
-        reject,
-      );
+      Promise.all([initPlates, initBars, initMaxes]).then(() => {
+        READ_VIEW = { plates: PLATE_MAP, bars: BAR_MAP, maxes: MAX_MAP };
+        _subscriptions.forEach((cb) => cb());
+        resolve();
+      }, reject);
     };
 
     /** initialize the data */
@@ -228,7 +227,7 @@ function initializeDatabase(): Promise<void> {
   });
 }
 
-let dbPromise: Promise<void> | null = null;
+export const dbReady: Promise<void> = initializeDatabase();
 let db: IDBDatabase | null = null;
 
 function putPlate(plate: Plate) {
@@ -366,12 +365,6 @@ interface MassStorage {
 }
 
 export function useMassStorage(): MassStorage {
-  if (dbPromise == null) {
-    dbPromise = initializeDatabase();
-  }
-
-  use(dbPromise);
-
   const store = useSyncExternalStore(_subscribe, _getSnapshot);
 
   return useMemo(
