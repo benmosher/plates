@@ -30,6 +30,9 @@ export interface Bar {
 
   barLength: number;
   handleWidth: number;
+
+  /** per-plate weight limits: plate weight → max count per side */
+  plateLimits?: { [plateWeight: number]: number };
 }
 
 export type BarInput = Omit<Bar, "idx"> & { idx?: number };

@@ -2,7 +2,11 @@ export function determinePlates<
   Plate extends { weight: number; count: number },
 >(
   target: number | null | undefined,
-  handle: { weight: number; plateThreshold?: number } | null,
+  handle: {
+    weight: number;
+    plateThreshold?: number;
+    plateLimits?: { [plateWeight: number]: number };
+  } | null,
   plates: readonly Plate[],
 ): readonly Plate[] {
   // don't bother
@@ -13,14 +17,19 @@ export function determinePlates<
 
   for (let i = plates.length - 1; weightLeft > 0 && i >= 0; i--) {
     const plate = plates[i];
+    const limit = handle.plateLimits?.[plate.weight] ?? Infinity;
 
-    if (handle.plateThreshold != null && plate.weight > handle.plateThreshold)
-      continue; // skip this plate if it exceeds the threshold
+    if (
+      limit <= 0 ||
+      (handle.plateThreshold != null && plate.weight > handle.plateThreshold)
+    )
+      continue; // skip this plate if it exceeds the threshold or is disallowed by limits
 
     // use as many of this plate as possible
     let countUsed = Math.min(
       plate.count,
       Math.floor(weightLeft / plate.weight),
+      limit,
     );
 
     // if none used, it was too big - move to next plate
@@ -62,6 +71,7 @@ export function determineWeightSpace(
     weight: number;
     maxLoad?: number;
     plateThreshold?: number;
+    plateLimits?: { [plateWeight: number]: number };
   }[],
   plates: readonly { weight: number; count: number }[],
 ) {
@@ -71,7 +81,12 @@ export function determineWeightSpace(
 }
 
 function deterimineBarWeightSpace(
-  bar: { weight: number; maxLoad?: number; plateThreshold?: number },
+  bar: {
+    weight: number;
+    maxLoad?: number;
+    plateThreshold?: number;
+    plateLimits?: { [plateWeight: number]: number };
+  },
   plates: readonly { weight: number; count: number }[],
 ) {
   // filter plates by threshold
@@ -80,7 +95,13 @@ function deterimineBarWeightSpace(
       ? plates.filter((p) => p.weight <= bar.plateThreshold!)
       : plates;
 
-  const plateCombos = determinePlateCombos(validPlates);
+  // apply per-plate limits
+  const effectivePlates = validPlates.map((p) => {
+    const limit = bar.plateLimits?.[p.weight];
+    return limit != null ? { ...p, count: Math.min(p.count, limit) } : p;
+  });
+
+  const plateCombos = determinePlateCombos(effectivePlates);
 
   const barWeights = [];
   for (const combo of plateCombos) {

@@ -27,6 +27,20 @@ describe("plates needed", () => {
       { weight: 5, count: 1 },
     ]);
   });
+
+  test("respects plateLimits", () => {
+    const plates = [
+      { weight: 5, count: 4 },
+      { weight: 10, count: 4 },
+    ];
+    // limit 10lb plates to 1 per side: 52.5 = 12.5 + 2*(10 + 5 + 5)
+    expect(
+      determinePlates(52.5, { weight: 12.5, plateLimits: { 10: 1 } }, plates),
+    ).toEqual([
+      { weight: 10, count: 1 },
+      { weight: 5, count: 2 },
+    ]);
+  });
 });
 
 function singles(weights: number[]) {
@@ -73,6 +87,21 @@ describe("weight space", () => {
         [...singles([0.25, 0.5, 0.75, 1, 2.5, 5]), { weight: 10, count: 4 }],
       ),
     ).toEqual(range(12.5, 112.5, 0.5));
+  });
+
+  test("per-bar plateLimits reduce achievable weights", () => {
+    // 2x10lb plates available, but bar limits to 1 per side
+    const plates = [{ weight: 10, count: 2 }];
+    expect(
+      determineWeightSpace(
+        [{ weight: 45, plateLimits: { 10: 1 } }],
+        plates,
+      ),
+    ).toEqual([45, 65]);
+    // without limit, should be 45, 65, 85
+    expect(
+      determineWeightSpace([{ weight: 45 }], plates),
+    ).toEqual([45, 65, 85]);
   });
 });
 

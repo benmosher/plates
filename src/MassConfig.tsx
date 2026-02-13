@@ -1,6 +1,7 @@
-import { memo, Suspense, useMemo } from "react";
+import { memo, Suspense, useCallback, useMemo } from "react";
 
 import BarEditor from "./BarEditor";
+import type { Bar, BarInput, Plate } from "./plate-db";
 import { useMassStorage } from "./plate-db";
 import { numbdfined } from "./utils";
 
@@ -97,6 +98,7 @@ const RawConfig = memo(function Config() {
           barTypeDatalistId="bar-type-options"
         />
       </details>
+      <PlateLimitsMatrix plates={plates} bars={bars} putBar={putBar} />
       <details open>
         <summary>Ready for more?</summary>
         <ul>
@@ -126,3 +128,71 @@ const RawConfig = memo(function Config() {
     </>
   );
 });
+
+function PlateLimitsMatrix({
+  plates,
+  bars,
+  putBar,
+}: {
+  plates: readonly Plate[];
+  bars: readonly Bar[];
+  putBar: (bar: BarInput) => void;
+}) {
+  const onChange = useCallback(
+    (bar: Bar, plateWeight: number, value: string) => {
+      const parsed = value === "" ? undefined : parseInt(value, 10);
+      const limits = { ...bar.plateLimits };
+      if (parsed == null || isNaN(parsed)) {
+        delete limits[plateWeight];
+      } else {
+        limits[plateWeight] = Math.max(0, parsed);
+      }
+      const hasLimits = Object.keys(limits).length > 0;
+      putBar({ ...bar, plateLimits: hasLimits ? limits : undefined });
+    },
+    [putBar],
+  );
+
+  return (
+    <details open>
+      <summary>Plate Limits</summary>
+      <div style={{ overflowX: "auto" }}>
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              {bars.map((bar) => (
+                <th key={bar.idx} style={{ textAlign: "center" }}>
+                  {bar.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {plates
+              .filter((p) => p.count && p.count > 0)
+              .map((p) => (
+                <tr key={p.weight}>
+                  <td>{p.weight}</td>
+                  {bars.map((bar) => (
+                    <td key={bar.idx}>
+                      <input
+                        type="number"
+                        min={0}
+                        max={p.count}
+                        placeholder="-"
+                        value={bar.plateLimits?.[p.weight] ?? ""}
+                        onChange={(e) =>
+                          onChange(bar, p.weight, e.target.value)
+                        }
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
