@@ -152,19 +152,50 @@ function BarComputer({
     const nudge = activeBar?.sliderMinStep;
     if (nudge == null) return;
     const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
-    if (weightMin != null && prev >= weightMin)
-      dispatchState({ target: prev });
+    if (weightMin != null && prev >= weightMin) dispatchState({ target: prev });
   });
   const nudgeUp = useAutoRepeat(() => {
     const nudge = activeBar?.sliderMinStep;
     if (nudge == null) return;
     const next = Math.floor((target ?? 0) / nudge) * nudge + nudge;
-    if (weightMax != null && next <= weightMax)
-      dispatchState({ target: next });
+    if (weightMax != null && next <= weightMax) dispatchState({ target: next });
   });
 
   return (
     <>
+      <select
+        value={JSON.stringify({ barType, barWeight })}
+        onChange={(e) => {
+          dispatchState(JSON.parse(e.target.value));
+        }}
+      >
+        <optgroup label="Best fit">
+          {Array.from(barTypes).map((type) => (
+            <option
+              key={type}
+              value={JSON.stringify({
+                barType: type,
+                barWeight: null,
+              })}
+            >
+              {type}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label="Specific bars">
+          {bars.map((bar) => (
+            <option
+              key={bar.idx}
+              value={JSON.stringify({
+                barType: bar.type,
+                barWeight: bar.weight,
+              })}
+            >
+              {bar.name} ({bar.weight})
+            </option>
+          ))}
+        </optgroup>
+      </select>
       <BarView determinedPlates={determinedPlates} bar={activeBar} />
       <section>
         <form>
@@ -175,69 +206,37 @@ function BarComputer({
               </option>
             ))}
           </datalist>
-          <fieldset>
-            <fieldset role="group">
-              <button
-                type="button"
-                className="secondary"
-                disabled={activeBar?.sliderMinStep == null}
-                style={{ width: "auto", paddingInline: "0.5rem" }}
-                {...nudgeDown}
-              >
-                {activeBar?.sliderMinStep != null
-                  ? `-${activeBar.sliderMinStep}`
-                  : "-"}
-              </button>
-              <input
-                id="target-number"
-                type="number"
-                placeholder="work weight"
-                value={target ?? ""}
-                min={weightMin}
-                max={weightMax}
-                step={weightStep}
-                onFocus={clear}
-                onKeyDown={onEnterBlur}
-                onBlur={scrollToTop}
-                onChange={(e) =>
-                  dispatchState({ target: numbdfined(e.target.value) })
-                }
-                aria-invalid={!validTarget}
-              />
-              <select
-                value={JSON.stringify({ barType, barWeight })}
-                aria-invalid={!validTarget}
-                onChange={(e) => {
-                  dispatchState(JSON.parse(e.target.value));
-                }}
-              >
-                <optgroup label="Best fit">
-                  {Array.from(barTypes).map((type) => (
-                    <option
-                      key={type}
-                      value={JSON.stringify({
-                        barType: type,
-                        barWeight: null,
-                      })}
-                    >
-                      {type}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Specific bars">
-                  {bars.map((bar) => (
-                    <option
-                      key={bar.idx}
-                      value={JSON.stringify({
-                        barType: bar.type,
-                        barWeight: bar.weight,
-                      })}
-                    >
-                      {bar.name} ({bar.weight})
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
+          <fieldset role="group">
+            {activeBar?.sliderMinStep != null && (
+              <>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={activeBar?.sliderMinStep == null}
+                  style={{ width: "auto", paddingInline: "0.5rem" }}
+                  {...nudgeDown}
+                >
+                  -{activeBar.sliderMinStep}
+                </button>
+              </>
+            )}
+            <input
+              id="target-number"
+              type="number"
+              placeholder="work weight"
+              value={target ?? ""}
+              min={weightMin}
+              max={weightMax}
+              step={weightStep}
+              onFocus={clear}
+              onKeyDown={onEnterBlur}
+              onBlur={scrollToTop}
+              onChange={(e) =>
+                dispatchState({ target: numbdfined(e.target.value) })
+              }
+              aria-invalid={!validTarget}
+            />
+            {activeBar?.sliderMinStep != null && (
               <button
                 type="button"
                 className="secondary"
@@ -245,34 +244,24 @@ function BarComputer({
                 style={{ width: "auto", paddingInline: "0.5rem" }}
                 {...nudgeUp}
               >
-                {activeBar?.sliderMinStep != null
-                  ? `${activeBar.sliderMinStep}+`
-                  : "+"}
+                {activeBar.sliderMinStep}+
               </button>
-            </fieldset>
-            <fieldset>
-              <label>
-                <input
-                  id="target-range"
-                  type="range"
-                  list="target-options"
-                  min={weightMin}
-                  max={weightMax}
-                  step={weightStep}
-                  value={target ?? ""}
-                  onChange={(e) =>
-                    dispatchState({ target: numbdfined(e.target.value) })
-                  }
-                />
-              </label>
-            </fieldset>
+            )}
           </fieldset>
-        </form>
-      </section>
+          <input
+            id="target-range"
+            type="range"
+            list="target-options"
+            min={weightMin}
+            max={weightMax}
+            step={weightStep}
+            value={target ?? ""}
+            onChange={(e) =>
+              dispatchState({ target: numbdfined(e.target.value) })
+            }
+          />
 
-      <section>
-        <h6>or use a percentage:</h6>
-        <form>
+          <small>or use a percentage:</small>
           <fieldset role="group">
             <input
               type="number"
