@@ -41,7 +41,6 @@ const RawConfig = memo(function Config() {
                 max={PLATE_COUNT_MAX}
                 value={plate.count}
                 onChange={(e) => {
-                  // todo: undefined plate count?
                   putPlate({ ...plate, count: numbdfined(e.target.value) });
                 }}
               />

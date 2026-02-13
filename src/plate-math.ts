@@ -77,10 +77,10 @@ export function determineWeightSpace(
 ) {
   if (bars.length === 0) return [];
   // merge all possible spaces for all selected bars
-  return bars.map((b) => deterimineBarWeightSpace(b, plates)).reduce(_merge);
+  return bars.map((b) => determineBarWeightSpace(b, plates)).reduce(_merge);
 }
 
-function deterimineBarWeightSpace(
+function determineBarWeightSpace(
   bar: {
     weight: number;
     maxLoad?: number;
