@@ -34,5 +34,10 @@ export function useWeightSet() {
     });
   }
 
-  return { weights, add, remove };
+  function clear() {
+    writeStorage([]);
+    setWeights([]);
+  }
+
+  return { weights, add, remove, clear };
 }

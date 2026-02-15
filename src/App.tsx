@@ -182,7 +182,7 @@ function BarComputer({
         weights={weightSet.weights}
         target={target}
         dispatchState={dispatchState}
-        onRemove={weightSet.remove}
+        onClear={weightSet.clear}
       />
       <section>
         <form>
@@ -242,9 +242,7 @@ function BarComputer({
                 className="secondary"
                 style={{ width: "auto", paddingInline: "0.75rem" }}
                 onClick={() =>
-                  inWeightSet
-                    ? weightSet.remove(target)
-                    : weightSet.add(target)
+                  inWeightSet ? weightSet.remove(target) : weightSet.add(target)
                 }
               >
                 {inWeightSet ? "\u2212" : "+"}
@@ -337,28 +335,32 @@ function WeightSet({
   weights,
   target,
   dispatchState,
-  onRemove,
+  onClear,
 }: {
   weights: number[];
   target: number | undefined | null;
   dispatchState: (action: { target: number }) => void;
-  onRemove: (weight: number) => void;
+  onClear: () => void;
 }) {
   if (!weights.length) return null;
 
   return (
     <>
-      {weights.map((w) => (
-        <HiddenDeleteFieldset key={w} onDelete={() => onRemove(w)}>
+      <div className="grid">
+        {weights.map((w) => (
           <button
             type="button"
+            key={w}
             className={w === target ? undefined : "secondary"}
             onClick={() => dispatchState({ target: w })}
           >
             {w}
           </button>
-        </HiddenDeleteFieldset>
-      ))}
+        ))}
+      </div>
+      <small>
+        (<a href="#" onClick={(e) => { e.preventDefault(); onClear(); }}>clear set</a>)
+      </small>
     </>
   );
 }
