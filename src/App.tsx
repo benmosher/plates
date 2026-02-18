@@ -19,6 +19,9 @@ import {
   useSaveState,
   useUrlHash,
 } from "./context";
+import WorkoutList from "./WorkoutList";
+import WorkoutEditor from "./WorkoutEditor";
+import WorkoutViewer from "./WorkoutViewer";
 
 function Nav() {
   const computeHash = useUrlHash();
@@ -38,6 +41,9 @@ function Nav() {
         <li>
           <Link to="/maxes">Maxes</Link>
         </li>
+        <li>
+          <Link to="/workouts">Workouts</Link>
+        </li>
       </ul>
     </nav>
   );
@@ -51,6 +57,9 @@ export default function App() {
         <Route path="/" element={<ComputerRoute />} />
         <Route path="/mass" element={<MassConfig />} />
         <Route path="/maxes" element={<MaxesEditor />} />
+        <Route path="/workouts" element={<WorkoutList />} />
+        <Route path="/workouts/:id/edit" element={<WorkoutEditor />} />
+        <Route path="/workouts/:id/view" element={<WorkoutViewer />} />
       </Routes>
     </AppContextProvider>
   );

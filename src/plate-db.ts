@@ -1,6 +1,7 @@
 // create a database
 
 import { useMemo, useSyncExternalStore } from "react";
+import { Workout } from "./workout-types";
 
 export interface Plate {
   count?: number;
@@ -136,7 +137,7 @@ function initializeStore<T>(
 /** Resolves when database is available and initialized */
 function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("mass", 4); // v4: plates + bars + indexed maxes
+    const request = indexedDB.open("mass", 5); // v5: + workouts
 
     let initializeMaxes = false;
     const maxesToInsert = INITIAL_MAXES;
@@ -194,8 +195,27 @@ function initializeDatabase(): Promise<void> {
         }
       });
 
-      Promise.all([initPlates, initBars, initMaxes]).then(() => {
-        READ_VIEW = { plates: PLATE_MAP, bars: BAR_MAP, maxes: MAX_MAP };
+      const initWorkouts = new Promise<void>((resolveWorkouts, rejectWorkouts) => {
+        if (!this.result.objectStoreNames.contains("workouts")) {
+          resolveWorkouts();
+          return;
+        }
+        const wTxn = this.result.transaction("workouts", "readonly");
+        const wStore = wTxn.objectStore("workouts");
+        const wRequest = wStore.getAll();
+        wRequest.onsuccess = function () {
+          for (const w of this.result as Iterable<Workout>) {
+            WORKOUT_MAP.set(w.id!, w);
+          }
+          resolveWorkouts();
+        };
+        wRequest.onerror = function () {
+          rejectWorkouts(this.error);
+        };
+      });
+
+      Promise.all([initPlates, initBars, initMaxes, initWorkouts]).then(() => {
+        READ_VIEW = { plates: PLATE_MAP, bars: BAR_MAP, maxes: MAX_MAP, workouts: WORKOUT_MAP };
         _subscriptions.forEach((cb) => cb());
         resolve();
       }, reject);
@@ -218,6 +238,9 @@ function initializeDatabase(): Promise<void> {
       if (!db.objectStoreNames.contains("maxes")) {
         db.createObjectStore("maxes", { keyPath: "id", autoIncrement: true });
         initializeMaxes = true;
+      }
+      if (!db.objectStoreNames.contains("workouts")) {
+        db.createObjectStore("workouts", { keyPath: "id", autoIncrement: true });
       }
     };
 
@@ -319,6 +342,41 @@ function deleteMax(idx: number) {
   txn.commit();
 }
 
+function putWorkout(workout: Workout): Promise<number> {
+  if (db == null) {
+    throw new Error("database not initialized");
+  }
+
+  const txn = db.transaction("workouts", "readwrite");
+  const store = txn.objectStore("workouts");
+  return new Promise((resolve) => {
+    store.put(workout).onsuccess = function () {
+      const id = this.result as number;
+      const saved = { ...workout, id };
+      WORKOUT_MAP.set(id, saved);
+      READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
+      _subscriptions.forEach((cb) => cb());
+      resolve(id);
+    };
+    txn.commit();
+  });
+}
+
+function deleteWorkout(id: number) {
+  if (db == null) {
+    throw new Error("database not initialized");
+  }
+
+  WORKOUT_MAP.delete(id);
+  READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
+  _subscriptions.forEach((cb) => cb());
+
+  const txn = db.transaction("workouts", "readwrite");
+  const store = txn.objectStore("workouts");
+  store.delete(id);
+  txn.commit();
+}
+
 /**
  * This map holds the current state of the plates
  * in memory, but is global so that multiple calls to
@@ -333,11 +391,14 @@ const BAR_MAP = new Map<number, Bar>();
 
 const MAX_MAP = new Map<number, Max>();
 
+const WORKOUT_MAP = new Map<number, Workout>();
+
 /** for the snapshot */
 let READ_VIEW = {
   plates: PLATE_MAP,
   bars: BAR_MAP,
   maxes: MAX_MAP,
+  workouts: WORKOUT_MAP,
 };
 
 /** callbacks to fire on updates */
@@ -354,6 +415,7 @@ interface MassStorage {
   readonly plates: readonly Plate[];
   readonly bars: readonly Bar[];
   readonly maxes: readonly Max[];
+  readonly workouts: readonly Workout[];
 
   putPlate(plate: Plate): void;
 
@@ -362,6 +424,9 @@ interface MassStorage {
 
   putMax(max: Max): void;
   deleteMax(id: number): void;
+
+  putWorkout(workout: Workout): Promise<number>;
+  deleteWorkout(id: number): void;
 }
 
 export function useMassStorage(): MassStorage {
@@ -374,11 +439,14 @@ export function useMassStorage(): MassStorage {
       ),
       bars: Array.from(store.bars.values()).toSorted((a, b) => a.idx - b.idx),
       maxes: Array.from(store.maxes.values()).toSorted((a, b) => a.id! - b.id!),
+      workouts: Array.from(store.workouts.values()).toSorted((a, b) => a.id! - b.id!),
       putPlate,
       putBar,
       deleteBar,
       putMax,
       deleteMax,
+      putWorkout,
+      deleteWorkout,
     }),
     [store, putPlate, putBar, deleteBar, putMax],
   );
