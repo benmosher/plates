@@ -84,8 +84,8 @@ export default function WorkoutViewer() {
         return (
           <details key={mIdx} open>
             <summary>
-              <strong>{movement.name || "(unnamed)"}</strong>
-              {linkedMax && ` (${linkedMax.label}: ${linkedMax.weight})`}
+              <strong>{movement.name || linkedMax?.label || "(unnamed)"}</strong>
+              {linkedMax && ` (${linkedMax.weight})`}
             </summary>
             {groups.map((group, gIdx) => {
               const first = group.sets[0];
