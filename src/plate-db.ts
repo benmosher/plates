@@ -137,7 +137,7 @@ function initializeStore<T>(
 /** Resolves when database is available and initialized */
 function initializeDatabase(): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("mass", 5); // v5: + workouts
+    const request = indexedDB.open("mass", 4); // v4: plates + bars + indexed maxes
 
     let initializeMaxes = false;
     const maxesToInsert = INITIAL_MAXES;
@@ -195,27 +195,8 @@ function initializeDatabase(): Promise<void> {
         }
       });
 
-      const initWorkouts = new Promise<void>((resolveWorkouts, rejectWorkouts) => {
-        if (!this.result.objectStoreNames.contains("workouts")) {
-          resolveWorkouts();
-          return;
-        }
-        const wTxn = this.result.transaction("workouts", "readonly");
-        const wStore = wTxn.objectStore("workouts");
-        const wRequest = wStore.getAll();
-        wRequest.onsuccess = function () {
-          for (const w of this.result as Iterable<Workout>) {
-            WORKOUT_MAP.set(w.id!, w);
-          }
-          resolveWorkouts();
-        };
-        wRequest.onerror = function () {
-          rejectWorkouts(this.error);
-        };
-      });
-
-      Promise.all([initPlates, initBars, initMaxes, initWorkouts]).then(() => {
-        READ_VIEW = { plates: PLATE_MAP, bars: BAR_MAP, maxes: MAX_MAP, workouts: WORKOUT_MAP };
+      Promise.all([initPlates, initBars, initMaxes]).then(() => {
+        READ_VIEW = { ...READ_VIEW, plates: PLATE_MAP, bars: BAR_MAP, maxes: MAX_MAP };
         _subscriptions.forEach((cb) => cb());
         resolve();
       }, reject);
@@ -239,9 +220,6 @@ function initializeDatabase(): Promise<void> {
         db.createObjectStore("maxes", { keyPath: "id", autoIncrement: true });
         initializeMaxes = true;
       }
-      if (!db.objectStoreNames.contains("workouts")) {
-        db.createObjectStore("workouts", { keyPath: "id", autoIncrement: true });
-      }
     };
 
     request.onerror = function () {
@@ -250,7 +228,10 @@ function initializeDatabase(): Promise<void> {
   });
 }
 
-export const dbReady: Promise<void> = initializeDatabase();
+export const dbReady: Promise<void> = Promise.all([
+  initializeDatabase(),
+  initializeWorkoutDatabase(),
+]).then(() => {});
 let db: IDBDatabase | null = null;
 
 function putPlate(plate: Plate) {
@@ -342,12 +323,49 @@ function deleteMax(idx: number) {
   txn.commit();
 }
 
+let workoutDb: IDBDatabase | null = null;
+
+function initializeWorkoutDatabase(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("workouts", 1);
+
+    request.onupgradeneeded = function () {
+      const db = this.result;
+      if (!db.objectStoreNames.contains("workouts")) {
+        db.createObjectStore("workouts", { keyPath: "id", autoIncrement: true });
+      }
+    };
+
+    request.onsuccess = function () {
+      workoutDb = this.result;
+      const txn = workoutDb.transaction("workouts", "readonly");
+      const store = txn.objectStore("workouts");
+      const getAll = store.getAll();
+      getAll.onsuccess = function () {
+        for (const w of this.result as Iterable<Workout>) {
+          WORKOUT_MAP.set(w.id!, w);
+        }
+        READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
+        _subscriptions.forEach((cb) => cb());
+        resolve();
+      };
+      getAll.onerror = function () {
+        reject(this.error);
+      };
+    };
+
+    request.onerror = function () {
+      reject(this.error);
+    };
+  });
+}
+
 function putWorkout(workout: Workout): Promise<number> {
-  if (db == null) {
-    throw new Error("database not initialized");
+  if (workoutDb == null) {
+    throw new Error("workout database not initialized");
   }
 
-  const txn = db.transaction("workouts", "readwrite");
+  const txn = workoutDb.transaction("workouts", "readwrite");
   const store = txn.objectStore("workouts");
   return new Promise((resolve) => {
     store.put(workout).onsuccess = function () {
@@ -363,15 +381,15 @@ function putWorkout(workout: Workout): Promise<number> {
 }
 
 function deleteWorkout(id: number) {
-  if (db == null) {
-    throw new Error("database not initialized");
+  if (workoutDb == null) {
+    throw new Error("workout database not initialized");
   }
 
   WORKOUT_MAP.delete(id);
   READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
   _subscriptions.forEach((cb) => cb());
 
-  const txn = db.transaction("workouts", "readwrite");
+  const txn = workoutDb.transaction("workouts", "readwrite");
   const store = txn.objectStore("workouts");
   store.delete(id);
   txn.commit();
