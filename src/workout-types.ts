@@ -10,6 +10,7 @@ export interface Movement {
   name: string;
   maxId: number | null;
   sets: WorkoutSet[];
+  restSeconds?: number;
 }
 
 export interface Workout {

@@ -5,6 +5,13 @@ import { chooseBar, determinePlates } from "./plate-math";
 import BarView from "./BarView";
 import { useMemo } from "react";
 
+function formatRest(seconds: number): string {
+  if (seconds % 60 === 0) return `${seconds / 60}min`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
+}
+
 interface ResolvedSet {
   label: string;
   target: number;
@@ -86,6 +93,7 @@ export default function WorkoutViewer() {
             <summary>
               <strong>{movement.name || linkedMax?.label || "(unnamed)"}</strong>
               {linkedMax && ` (${linkedMax.weight})`}
+              {movement.restSeconds != null && ` — ${formatRest(movement.restSeconds)} rest`}
             </summary>
             {groups.map((group, gIdx) => {
               const first = group.sets[0];
