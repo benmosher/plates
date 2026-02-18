@@ -1,9 +1,6 @@
 import { useParams, Link } from "react-router";
-import { useMassStorage, Plate, Bar } from "./plate-db";
+import { useMassStorage } from "./plate-db";
 import { WorkoutSet } from "./workout-types";
-import { chooseBar, determinePlates } from "./plate-math";
-import BarView from "./BarView";
-import { useMemo } from "react";
 
 function formatRest(seconds: number): string {
   if (seconds % 60 === 0) return `${seconds / 60}min`;
@@ -12,25 +9,27 @@ function formatRest(seconds: number): string {
   return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
 }
 
+function buildSetHash(set: WorkoutSet, maxWeight: number | null, target: number): string {
+  const params = new URLSearchParams();
+  if (set.weight.type === "percentage" && maxWeight != null) {
+    params.set("pct", String(set.weight.value));
+    params.set("1rm", String(maxWeight));
+  } else {
+    params.set("weight", String(target));
+  }
+  return `/#${params.toString()}`;
+}
+
 interface ResolvedSet {
   label: string;
   target: number;
-  bar: Bar | null;
-  plates: readonly (Plate & { count: number })[];
+  hash: string;
 }
 
 export default function WorkoutViewer() {
   const { id } = useParams<{ id: string }>();
-  const { workouts, plates, bars, maxes } = useMassStorage();
+  const { workouts, maxes } = useMassStorage();
   const workout = workouts.find((w) => w.id === Number(id));
-
-  const validPlates = useMemo<readonly (Plate & { count: number })[]>(() => {
-    const filtered = plates.filter((p) => p.count && p.weight) as (Plate & {
-      count: number;
-    })[];
-    filtered.sort((a, b) => a.weight - b.weight);
-    return filtered;
-  }, [plates]);
 
   if (!workout) return <p>Workout not found.</p>;
 
@@ -61,30 +60,26 @@ export default function WorkoutViewer() {
         for (const set of movement.sets) {
           for (let c = 0; c < set.count; c++) {
             const target = resolveWeight(set, maxWeight);
-            const bar = chooseBar(bars, target, "barbell");
-            const detPlates = determinePlates(target, bar, validPlates);
             const weightLabel = set.weight.type === "percentage"
               ? `${set.weight.value}% = ${target}`
               : `${target}`;
             resolved.push({
               label: `Set ${setNum}: ${set.reps} reps @ ${weightLabel}`,
               target,
-              bar,
-              plates: detPlates,
+              hash: buildSetHash(set, maxWeight, target),
             });
             setNum++;
           }
         }
 
         // Group consecutive identical weights
-        const groups: { sets: ResolvedSet[]; count: number }[] = [];
+        const groups: { first: ResolvedSet; count: number }[] = [];
         for (const r of resolved) {
           const last = groups[groups.length - 1];
-          if (last && last.sets[0].target === r.target) {
-            last.sets.push(r);
+          if (last && last.first.target === r.target) {
             last.count++;
           } else {
-            groups.push({ sets: [r], count: 1 });
+            groups.push({ first: r, count: 1 });
           }
         }
 
@@ -95,18 +90,18 @@ export default function WorkoutViewer() {
               {linkedMax && ` (${linkedMax.weight})`}
               {movement.restSeconds != null && ` — ${formatRest(movement.restSeconds)} rest`}
             </summary>
-            {groups.map((group, gIdx) => {
-              const first = group.sets[0];
-              const label = group.count > 1
-                ? `${first.label} (\u00d7${group.count})`
-                : first.label;
-              return (
-              <section key={gIdx}>
-                <small>{label}</small>
-                <BarView determinedPlates={first.plates} bar={first.bar} />
-              </section>
-              );
-            })}
+            <ul>
+              {groups.map((group, gIdx) => {
+                const label = group.count > 1
+                  ? `${group.first.label} (\u00d7${group.count})`
+                  : group.first.label;
+                return (
+                  <li key={gIdx}>
+                    <Link to={group.first.hash}>{label}</Link>
+                  </li>
+                );
+              })}
+            </ul>
           </details>
         );
       })}
