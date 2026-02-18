@@ -48,12 +48,12 @@ export default function WorkoutEditor() {
   }
 
   function addSet(mIdx: number) {
-    updateMovement(mIdx, {
-      sets: [
-        ...workout!.movements[mIdx].sets,
-        { reps: 5, count: 1, weight: { type: "absolute", value: 0 } },
-      ],
-    });
+    const sets = workout!.movements[mIdx].sets;
+    const last = sets[sets.length - 1];
+    const newSet = last
+      ? { ...last, weight: { ...last.weight } }
+      : { reps: 5, count: 1, weight: { type: "absolute" as const, value: 0 } };
+    updateMovement(mIdx, { sets: [...sets, newSet] });
   }
 
   return (
