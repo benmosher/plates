@@ -125,7 +125,7 @@ export function useRawAppState() {
   return [state, dispatch] as const;
 }
 
-function pushUrlState(state: State) {
+function updateUrlState(state: State) {
   const current = getUrlState();
   if (
     Object.entries(current).every(
@@ -134,13 +134,13 @@ function pushUrlState(state: State) {
   )
     return; // don't push a state if we're matching
 
-  history.pushState(null, "", buildUrlHash(state));
+  history.replaceState(null, "", buildUrlHash(state));
 }
 
 export function useSaveState(state: State) {
   useEffect(function saveState() {
     localStorage.setItem("appState", JSON.stringify(state));
-    const cancelHandle = setTimeout(pushUrlState, 1000, state);
+    const cancelHandle = setTimeout(updateUrlState, 1000, state);
     return () => clearTimeout(cancelHandle);
   }, Object.values(state));
 }
