@@ -108,115 +108,115 @@ export default function WorkoutEditor() {
 
       {workout.movements.map((movement, mIdx) => (
         <article key={mIdx}>
-          <header style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <input
-              type="text"
-              placeholder="Movement name"
-              defaultValue={movement.name}
-              style={{ marginBottom: 0 }}
-              onBlur={(e) => updateMovement(mIdx, { name: e.target.value })}
-            />
-            <select
-              value={movement.maxId ?? ""}
-              style={{ marginBottom: 0, width: "auto" }}
-              onChange={(e) =>
-                updateMovement(mIdx, {
-                  maxId: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-            >
-              <option value="">No max</option>
-              {maxes
-                .filter((m) => m.label && m.weight)
-                .map((m) => (
-                  <option key={m.id} value={m.id!}>
-                    {m.label} ({m.weight})
-                  </option>
-                ))}
-            </select>
-            <input
-              type="text"
-              placeholder="rest (e.g. 3min)"
-              defaultValue={movement.restSeconds != null ? formatRestSeconds(movement.restSeconds) : ""}
-              style={{ marginBottom: 0, width: "7rem" }}
-              onBlur={(e) => {
-                const secs = parseRestSeconds(e.target.value);
-                updateMovement(mIdx, { restSeconds: secs });
-                e.target.value = secs != null ? formatRestSeconds(secs) : "";
-              }}
-            />
-            <button
-              type="button"
-              className="secondary outline"
-              style={{ width: "auto", marginBottom: 0 }}
-              onClick={() => deleteMovement(mIdx)}
-            >
-              &times;
-            </button>
-          </header>
-
-          {movement.sets.map((set, sIdx) => (
-            <fieldset role="group" key={sIdx}>
+          <header>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
               <input
-                type="number"
-                min={1}
-                placeholder="sets"
-                defaultValue={set.count}
-                style={{ width: "4rem" }}
-                onBlur={(e) =>
-                  updateSet(mIdx, sIdx, {
-                    count: numbdfined(e.target.value) ?? 1,
-                  })
-                }
+                type="text"
+                placeholder="Movement name"
+                defaultValue={movement.name}
+                style={{ flex: 1, marginBottom: 0 }}
+                onBlur={(e) => updateMovement(mIdx, { name: e.target.value })}
               />
-              <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>&times;</span>
-              <input
-                type="number"
-                min={1}
-                placeholder="reps"
-                defaultValue={set.reps}
-                style={{ width: "4rem" }}
-                onBlur={(e) =>
-                  updateSet(mIdx, sIdx, {
-                    reps: numbdfined(e.target.value) ?? 1,
-                  })
-                }
-              />
-              <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>@</span>
-              <input
-                type="number"
-                min={0}
-                placeholder={set.weight.type === "percentage" ? "%" : "weight"}
-                defaultValue={set.weight.value}
-                onBlur={(e) => {
-                  const val = numbdfined(e.target.value) ?? 0;
-                  updateSet(mIdx, sIdx, {
-                    weight: { ...set.weight, value: val },
-                  });
-                }}
-              />
-              <select
-                value={set.weight.type}
-                style={{ width: "auto" }}
-                onChange={(e) => {
-                  const type = e.target.value as "absolute" | "percentage";
-                  updateSet(mIdx, sIdx, {
-                    weight: { type, value: set.weight.value },
-                  });
-                }}
-              >
-                <option value="absolute">lb</option>
-                <option value="percentage">%</option>
-              </select>
               <button
                 type="button"
                 className="secondary outline"
-                style={{ width: "auto" }}
-                onClick={() => deleteSet(mIdx, sIdx)}
+                style={{ width: "auto", marginBottom: 0 }}
+                onClick={() => deleteMovement(mIdx)}
               >
                 &times;
               </button>
-            </fieldset>
+            </div>
+            <div className="grid">
+              <select
+                value={movement.maxId ?? ""}
+                onChange={(e) =>
+                  updateMovement(mIdx, {
+                    maxId: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+              >
+                <option value="">No max</option>
+                {maxes
+                  .filter((m) => m.label && m.weight)
+                  .map((m) => (
+                    <option key={m.id} value={m.id!}>
+                      {m.label} ({m.weight})
+                    </option>
+                  ))}
+              </select>
+              <input
+                type="text"
+                placeholder="rest (e.g. 3min)"
+                defaultValue={movement.restSeconds != null ? formatRestSeconds(movement.restSeconds) : ""}
+                onBlur={(e) => {
+                  const secs = parseRestSeconds(e.target.value);
+                  updateMovement(mIdx, { restSeconds: secs });
+                  e.target.value = secs != null ? formatRestSeconds(secs) : "";
+                }}
+              />
+            </div>
+          </header>
+
+          {movement.sets.map((set, sIdx) => (
+            <div className="grid" key={sIdx}>
+              <fieldset role="group" style={{ marginBottom: 0 }}>
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="sets"
+                  defaultValue={set.count}
+                  onBlur={(e) =>
+                    updateSet(mIdx, sIdx, {
+                      count: numbdfined(e.target.value) ?? 1,
+                    })
+                  }
+                />
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="reps"
+                  defaultValue={set.reps}
+                  onBlur={(e) =>
+                    updateSet(mIdx, sIdx, {
+                      reps: numbdfined(e.target.value) ?? 1,
+                    })
+                  }
+                />
+              </fieldset>
+              <fieldset role="group" style={{ marginBottom: 0 }}>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder={set.weight.type === "percentage" ? "%" : "weight"}
+                  defaultValue={set.weight.value}
+                  onBlur={(e) => {
+                    const val = numbdfined(e.target.value) ?? 0;
+                    updateSet(mIdx, sIdx, {
+                      weight: { ...set.weight, value: val },
+                    });
+                  }}
+                />
+                <select
+                  value={set.weight.type}
+                  onChange={(e) => {
+                    const type = e.target.value as "absolute" | "percentage";
+                    updateSet(mIdx, sIdx, {
+                      weight: { type, value: set.weight.value },
+                    });
+                  }}
+                >
+                  <option value="absolute">lb</option>
+                  <option value="percentage">%</option>
+                </select>
+                <button
+                  type="button"
+                  className="secondary outline"
+                  onClick={() => deleteSet(mIdx, sIdx)}
+                >
+                  &times;
+                </button>
+              </fieldset>
+            </div>
           ))}
           <button type="button" className="secondary" onClick={() => addSet(mIdx)}>
             Add set

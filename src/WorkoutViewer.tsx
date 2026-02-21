@@ -90,18 +90,18 @@ export default function WorkoutViewer() {
               {linkedMax && ` (${linkedMax.weight})`}
               {movement.restSeconds != null && ` — ${formatRest(movement.restSeconds)} rest`}
             </summary>
-            <ul>
-              {groups.map((group, gIdx) => {
-                const label = group.count > 1
-                  ? `${group.first.label} (\u00d7${group.count})`
-                  : group.first.label;
-                return (
-                  <li key={gIdx}>
-                    <Link to={group.first.hash}>{label}</Link>
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="grid">
+            {groups.map((group, gIdx) => {
+              const label = group.count > 1
+                ? `${group.first.label} (\u00d7${group.count})`
+                : group.first.label;
+              return (
+                <Link key={gIdx} to={group.first.hash} role="button" className="secondary outline">
+                  {label}
+                </Link>
+              );
+            })}
+            </div>
           </details>
         );
       })}
