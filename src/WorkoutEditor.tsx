@@ -14,7 +14,8 @@ function parseRestSeconds(input: string): number | undefined {
 
   // "2min30s", "2m30s"
   const compoundMatch = s.match(/^(\d+)\s*m(?:in)?\s*(\d+)\s*s(?:ec)?$/i);
-  if (compoundMatch) return parseInt(compoundMatch[1]) * 60 + parseInt(compoundMatch[2]);
+  if (compoundMatch)
+    return parseInt(compoundMatch[1]) * 60 + parseInt(compoundMatch[2]);
 
   // "3min", "3m"
   const minMatch = s.match(/^(\d+(?:\.\d+)?)\s*m(?:in)?$/i);
@@ -62,10 +63,7 @@ export default function WorkoutEditor() {
 
   function addMovement() {
     save({
-      movements: [
-        ...workout!.movements,
-        { name: "", maxId: null, sets: [] },
-      ],
+      movements: [...workout!.movements, { name: "", maxId: null, sets: [] }],
     });
   }
 
@@ -93,9 +91,19 @@ export default function WorkoutEditor() {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <h3>Edit Workout</h3>
-        <Link to={`/workouts/${id}/view`} role="button" className="secondary outline" style={{ width: "auto" }}>
+        <Link
+          to={`/workouts/${id}/view`}
+          role="button"
+          className="secondary outline"
+        >
           View
         </Link>
       </div>
@@ -109,24 +117,26 @@ export default function WorkoutEditor() {
       {workout.movements.map((movement, mIdx) => (
         <article key={mIdx}>
           <header>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <div
+              style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
+            >
               <input
                 type="text"
                 placeholder="Movement name"
                 defaultValue={movement.name}
-                style={{ flex: 1, marginBottom: 0 }}
+                style={{ flex: 1 }}
                 onBlur={(e) => updateMovement(mIdx, { name: e.target.value })}
               />
               <button
                 type="button"
                 className="secondary outline"
-                style={{ width: "auto", marginBottom: 0 }}
+                style={{ width: "auto" }}
                 onClick={() => deleteMovement(mIdx)}
               >
                 &times;
               </button>
             </div>
-            <div className="grid">
+            <fieldset className="grid">
               <select
                 value={movement.maxId ?? ""}
                 onChange={(e) =>
@@ -147,18 +157,25 @@ export default function WorkoutEditor() {
               <input
                 type="text"
                 placeholder="rest (e.g. 3min)"
-                defaultValue={movement.restSeconds != null ? formatRestSeconds(movement.restSeconds) : ""}
+                defaultValue={
+                  movement.restSeconds != null
+                    ? formatRestSeconds(movement.restSeconds)
+                    : ""
+                }
                 onBlur={(e) => {
                   const secs = parseRestSeconds(e.target.value);
                   updateMovement(mIdx, { restSeconds: secs });
                   e.target.value = secs != null ? formatRestSeconds(secs) : "";
                 }}
               />
-            </div>
+            </fieldset>
           </header>
 
           {movement.sets.map((set, sIdx) => (
-            <div className="grid" key={sIdx}>
+            <fieldset className="grid" key={sIdx}>
+              <legend>
+                <small>Set {sIdx + 1}</small>
+              </legend>
               <fieldset role="group" style={{ marginBottom: 0 }}>
                 <input
                   type="number"
@@ -187,7 +204,9 @@ export default function WorkoutEditor() {
                 <input
                   type="number"
                   min={0}
-                  placeholder={set.weight.type === "percentage" ? "%" : "weight"}
+                  placeholder={
+                    set.weight.type === "percentage" ? "%" : "weight"
+                  }
                   defaultValue={set.weight.value}
                   onBlur={(e) => {
                     const val = numbdfined(e.target.value) ?? 0;
@@ -211,14 +230,19 @@ export default function WorkoutEditor() {
                 <button
                   type="button"
                   className="secondary outline"
+                  style={{ width: "auto" }}
                   onClick={() => deleteSet(mIdx, sIdx)}
                 >
                   &times;
                 </button>
               </fieldset>
-            </div>
+            </fieldset>
           ))}
-          <button type="button" className="secondary" onClick={() => addSet(mIdx)}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => addSet(mIdx)}
+          >
             Add set
           </button>
         </article>

@@ -90,7 +90,7 @@ export default function WorkoutViewer() {
               {linkedMax && ` (${linkedMax.weight})`}
               {movement.restSeconds != null && ` — ${formatRest(movement.restSeconds)} rest`}
             </summary>
-            <div className="grid">
+            <fieldset className="grid">
             {groups.map((group, gIdx) => {
               const label = group.count > 1
                 ? `${group.first.label} (\u00d7${group.count})`
@@ -101,7 +101,7 @@ export default function WorkoutViewer() {
                 </Link>
               );
             })}
-            </div>
+            </fieldset>
           </details>
         );
       })}
