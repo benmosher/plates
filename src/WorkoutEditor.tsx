@@ -82,10 +82,13 @@ export default function WorkoutEditor() {
 
   function addSet(mIdx: number) {
     const sets = workout!.movements[mIdx].sets;
+    const movement = workout!.movements[mIdx];
     const last = sets[sets.length - 1];
     const newSet = last
       ? { ...last, weight: { ...last.weight } }
-      : { reps: 5, count: 1, weight: { type: "absolute" as const, value: 0 } };
+      : movement.maxId != null
+        ? { reps: 5, count: 1, weight: { type: "percentage" as const, value: 80 } }
+        : { reps: 5, count: 1, weight: { type: "absolute" as const, value: 0 } };
     updateMovement(mIdx, { sets: [...sets, newSet] });
   }
 
@@ -139,11 +142,15 @@ export default function WorkoutEditor() {
             <fieldset className="grid">
               <select
                 value={movement.maxId ?? ""}
-                onChange={(e) =>
-                  updateMovement(mIdx, {
-                    maxId: e.target.value ? Number(e.target.value) : null,
-                  })
-                }
+                onChange={(e) => {
+                  const maxId = e.target.value ? Number(e.target.value) : null;
+                  const type = maxId != null ? "percentage" as const : "absolute" as const;
+                  const sets = movement.sets.map((s) => ({
+                    ...s,
+                    weight: { type, value: s.weight.value },
+                  }));
+                  updateMovement(mIdx, { maxId, sets });
+                }}
               >
                 <option value="">No max</option>
                 {maxes
@@ -172,11 +179,9 @@ export default function WorkoutEditor() {
           </header>
 
           {movement.sets.map((set, sIdx) => (
-            <fieldset className="grid" key={sIdx}>
-              <legend>
-                <small>Set {sIdx + 1}</small>
-              </legend>
-              <fieldset role="group" style={{ marginBottom: 0 }}>
+            <fieldset key={sIdx}>
+              <legend><small>Set {sIdx + 1}</small></legend>
+              <fieldset role="group">
                 <input
                   type="number"
                   min={1}
@@ -188,6 +193,7 @@ export default function WorkoutEditor() {
                     })
                   }
                 />
+                <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>&times;</span>
                 <input
                   type="number"
                   min={1}
@@ -199,14 +205,11 @@ export default function WorkoutEditor() {
                     })
                   }
                 />
-              </fieldset>
-              <fieldset role="group" style={{ marginBottom: 0 }}>
+                <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>@</span>
                 <input
                   type="number"
                   min={0}
-                  placeholder={
-                    set.weight.type === "percentage" ? "%" : "weight"
-                  }
+                  placeholder={movement.maxId != null ? "%" : "weight"}
                   defaultValue={set.weight.value}
                   onBlur={(e) => {
                     const val = numbdfined(e.target.value) ?? 0;
@@ -215,18 +218,6 @@ export default function WorkoutEditor() {
                     });
                   }}
                 />
-                <select
-                  value={set.weight.type}
-                  onChange={(e) => {
-                    const type = e.target.value as "absolute" | "percentage";
-                    updateSet(mIdx, sIdx, {
-                      weight: { type, value: set.weight.value },
-                    });
-                  }}
-                >
-                  <option value="absolute">lb</option>
-                  <option value="percentage">%</option>
-                </select>
                 <button
                   type="button"
                   className="secondary outline"
