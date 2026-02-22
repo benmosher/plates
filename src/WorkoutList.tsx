@@ -1,10 +1,11 @@
 import { Link, useNavigate } from "react-router";
 import { useMassStorage } from "./plate-db";
-import { HiddenDeleteFieldset } from "./HiddenDeleteFieldset";
 import { Workout } from "./workout-types";
 import { exportWorkout, buildImportUrl } from "./workout-export";
 import { useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+
+const btnStyle: React.CSSProperties = { width: "auto", padding: "0.25rem 0.5rem", fontSize: "0.75rem", margin: 0 };
 
 function ShareDialog({ workout }: { workout: Workout }) {
   const { maxes } = useMassStorage();
@@ -22,7 +23,7 @@ function ShareDialog({ workout }: { workout: Workout }) {
       <button
         type="button"
         className="secondary outline"
-        style={{ width: "auto" }}
+        style={btnStyle}
         onClick={handleShare}
       >
         Share
@@ -62,21 +63,39 @@ export default function WorkoutList() {
   return (
     <>
       <h3>Workouts</h3>
-      {workouts.length === 0 && <p>No saved workouts yet.</p>}
-      {workouts.map((w) => (
-        <HiddenDeleteFieldset
-          key={w.id}
-          onDelete={() => deleteWorkout(w.id!)}
-        >
-          <Link to={`/workouts/${w.id}/edit`} style={{ flex: 1 }}>
-            {w.name || "(untitled)"}
-          </Link>
-          <ShareDialog workout={w} />
-          <Link to={`/workouts/${w.id}/view`} role="button" className="secondary outline" style={{ width: "auto" }}>
-            View
-          </Link>
-        </HiddenDeleteFieldset>
-      ))}
+      {workouts.length === 0 ? (
+        <p>No saved workouts yet.</p>
+      ) : (
+        <table>
+          <tbody>
+            {workouts.map((w) => (
+              <tr key={w.id}>
+                <td>
+                  <Link to={`/workouts/${w.id}/edit`}>
+                    {w.name || "(untitled)"}
+                  </Link>
+                </td>
+                <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
+                  <span style={{ display: "inline-flex", gap: "0.25rem" }}>
+                    <ShareDialog workout={w} />
+                    <Link to={`/workouts/${w.id}/view`} role="button" className="secondary outline" style={btnStyle}>
+                      View
+                    </Link>
+                    <button
+                      type="button"
+                      className="secondary outline"
+                      style={btnStyle}
+                      onClick={() => deleteWorkout(w.id!)}
+                    >
+                      &times;
+                    </button>
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       <button
         type="button"
         onClick={async () => {
