@@ -21,7 +21,14 @@ CI runs `pnpm test` then `pnpm build --base="/plates/"` on push to main.
 
 ### Routing (`App.tsx`)
 
-Three routes: `/` (calculator), `/mass` (plate/bar config), `/maxes` (1RM editor). All wrapped in `AppContextProvider`.
+Seven routes, all wrapped in `AppContextProvider`:
+- `/` — calculator
+- `/mass` — plate/bar config
+- `/maxes` — 1RM editor
+- `/workouts` — workout list
+- `/workouts/import` — import workout from external format
+- `/workouts/:id/edit` — workout editor
+- `/workouts/:id/view` — workout viewer
 
 ### State Management (`context.tsx`)
 
@@ -29,7 +36,13 @@ App-level state (target weight, bar type, percentage, 1RM base) managed via `use
 
 ### Data Layer (`plate-db.ts`)
 
-IndexedDB (database name: `"mass"`, version 4) with three stores: `plates`, `bars`, `maxes`. In-memory Maps (`PLATE_MAP`, `BAR_MAP`, `MAX_MAP`) mirror DB state. React integration via `useSyncExternalStore` with a manual subscription system. The `useMassStorage()` hook triggers Suspense while DB initializes, then returns sorted arrays + mutation functions.
+Two IndexedDB databases:
+- `"mass"` (version 4) — three stores: `plates`, `bars`, `maxes`
+- `"workouts"` (version 1) — one store: `workouts`
+
+In-memory Maps (`PLATE_MAP`, `BAR_MAP`, `MAX_MAP`, `WORKOUT_MAP`) mirror DB state. React integration via `useSyncExternalStore` with a manual subscription system. The `useMassStorage()` hook triggers Suspense while DBs initialize, then returns sorted arrays + mutation functions for all four data types.
+
+Workout data shape is defined in `workout-types.ts`: `Workout` → `MovementGroup[]` → `Movement[]` → `WorkoutSet[]`. Migration logic in `plate-db.ts` handles old formats on load.
 
 ### Core Math (`plate-math.ts`)
 
@@ -39,7 +52,7 @@ IndexedDB (database name: `"mass"`, version 4) with three stores: `plates`, `bar
 - `chooseBar` — selects heaviest bar ≤ target, filtered by type
 - `closestTarget` — binary search for nearest valid weight
 
-Tests live in `plate-math.test.ts` and cover the math functions.
+Tests live in `plate-math.test.ts` (math functions) and `workout-export.test.ts` (workout export logic).
 
 ### UI Patterns
 
