@@ -48,61 +48,80 @@ export default function WorkoutViewer() {
         </Link>
       </div>
 
-      {workout.movements.map((movement, mIdx) => {
-        const linkedMax = movement.maxId != null
-          ? maxes.find((m) => m.id === movement.maxId)
-          : null;
-        const maxWeight = linkedMax?.weight ?? null;
+      {workout.groups.map((group, gIdx) => {
+        const movementInfos = group.movements.map((movement) => {
+          const linkedMax = movement.maxId != null
+            ? maxes.find((m) => m.id === movement.maxId)
+            : null;
+          const maxWeight = linkedMax?.weight ?? null;
 
-        // Expand sets by count and resolve weights
-        const resolved: ResolvedSet[] = [];
-        let setNum = 1;
-        for (const set of movement.sets) {
-          for (let c = 0; c < set.count; c++) {
-            const target = resolveWeight(set, maxWeight);
-            const weightLabel = set.weight.type === "percentage"
-              ? `${set.weight.value}% = ${target}`
-              : `${target}`;
-            resolved.push({
-              label: `Set ${setNum}: ${set.reps} reps @ ${weightLabel}`,
-              target,
-              hash: buildSetHash(set, maxWeight, target),
-            });
-            setNum++;
+          const resolved: ResolvedSet[] = [];
+          let setNum = 1;
+          for (const set of movement.sets) {
+            for (let c = 0; c < set.count; c++) {
+              const target = resolveWeight(set, maxWeight);
+              const weightLabel = set.weight.type === "percentage"
+                ? `${set.weight.value}% = ${target}`
+                : `${target}`;
+              resolved.push({
+                label: `Set ${setNum}: ${set.reps} reps @ ${weightLabel}`,
+                target,
+                hash: buildSetHash(set, maxWeight, target),
+              });
+              setNum++;
+            }
           }
-        }
 
-        // Group consecutive identical weights
-        const groups: { first: ResolvedSet; count: number }[] = [];
-        for (const r of resolved) {
-          const last = groups[groups.length - 1];
-          if (last && last.first.target === r.target) {
-            last.count++;
-          } else {
-            groups.push({ first: r, count: 1 });
+          // group consecutive identical weights
+          const weightGroups: { first: ResolvedSet; count: number }[] = [];
+          for (const r of resolved) {
+            const last = weightGroups[weightGroups.length - 1];
+            if (last && last.first.target === r.target) {
+              last.count++;
+            } else {
+              weightGroups.push({ first: r, count: 1 });
+            }
           }
-        }
+
+          return { movement, linkedMax, weightGroups };
+        });
+
+        const summaryName = movementInfos
+          .map(({ movement, linkedMax }) => movement.name || linkedMax?.label || "(unnamed)")
+          .join(" + ");
 
         return (
-          <details key={mIdx} open>
+          <article key={gIdx}>
+          <details open>
             <summary>
-              <strong>{movement.name || linkedMax?.label || "(unnamed)"}</strong>
-              {linkedMax && ` (${linkedMax.weight})`}
-              {movement.restSeconds != null && ` — ${formatRest(movement.restSeconds)} rest`}
+              <strong>{summaryName}</strong>
+              {group.restSeconds != null && ` — ${formatRest(group.restSeconds)} rest`}
             </summary>
-            <fieldset className="grid">
-            {groups.map((group, gIdx) => {
-              const label = group.count > 1
-                ? `${group.first.label} (\u00d7${group.count})`
-                : group.first.label;
-              return (
-                <Link key={gIdx} to={group.first.hash} role="button" className="secondary outline">
-                  {label}
-                </Link>
-              );
-            })}
-            </fieldset>
+
+            {movementInfos.map(({ movement, linkedMax, weightGroups }, mIdx) => (
+              <div key={mIdx}>
+                {movementInfos.length > 1 && (
+                  <small>
+                    <strong>{movement.name || linkedMax?.label || "(unnamed)"}</strong>
+                    {linkedMax && ` (${linkedMax.weight})`}
+                  </small>
+                )}
+                <fieldset className="grid">
+                  {weightGroups.map((wg, wgIdx) => {
+                    const label = wg.count > 1
+                      ? `${wg.first.label} (\u00d7${wg.count})`
+                      : wg.first.label;
+                    return (
+                      <Link key={wgIdx} to={wg.first.hash} role="button" className="secondary outline">
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </fieldset>
+              </div>
+            ))}
           </details>
+          </article>
         );
       })}
     </>

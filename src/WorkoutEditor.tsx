@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router";
 import { useMassStorage } from "./plate-db";
-import { Workout, Movement, WorkoutSet } from "./workout-types";
+import { Workout, MovementGroup, Movement, WorkoutSet } from "./workout-types";
 import { numbdfined } from "./utils";
 
 /** Parse human-readable rest time to seconds. Handles: "3min", "90s", "1:30", "90". */
@@ -50,46 +50,65 @@ export default function WorkoutEditor() {
     putWorkout({ ...workout!, ...patch });
   }
 
-  function updateMovement(idx: number, patch: Partial<Movement>) {
-    const movements = workout!.movements.map((m, i) =>
-      i === idx ? { ...m, ...patch } : m,
+  function updateGroup(gIdx: number, patch: Partial<MovementGroup>) {
+    const groups = workout!.groups.map((g, i) =>
+      i === gIdx ? { ...g, ...patch } : g,
     );
-    save({ movements });
+    save({ groups });
   }
 
-  function deleteMovement(idx: number) {
-    save({ movements: workout!.movements.filter((_, i) => i !== idx) });
-  }
-
-  function addMovement() {
+  function addGroup() {
     save({
-      movements: [...workout!.movements, { name: "", maxId: null, sets: [] }],
+      groups: [...workout!.groups, { movements: [{ name: "", maxId: null, sets: [] }] }],
     });
   }
 
-  function updateSet(mIdx: number, sIdx: number, patch: Partial<WorkoutSet>) {
-    const sets = workout!.movements[mIdx].sets.map((s, i) =>
+  function updateMovement(gIdx: number, mIdx: number, patch: Partial<Movement>) {
+    const movements = workout!.groups[gIdx].movements.map((m, i) =>
+      i === mIdx ? { ...m, ...patch } : m,
+    );
+    updateGroup(gIdx, { movements });
+  }
+
+  function deleteMovement(gIdx: number, mIdx: number) {
+    const group = workout!.groups[gIdx];
+    if (group.movements.length === 1) {
+      save({ groups: workout!.groups.filter((_, i) => i !== gIdx) });
+    } else {
+      updateGroup(gIdx, { movements: group.movements.filter((_, i) => i !== mIdx) });
+    }
+  }
+
+  function addMovementToGroup(gIdx: number) {
+    const group = workout!.groups[gIdx];
+    updateGroup(gIdx, {
+      movements: [...group.movements, { name: "", maxId: null, sets: [] }],
+    });
+  }
+
+  function updateSet(gIdx: number, mIdx: number, sIdx: number, patch: Partial<WorkoutSet>) {
+    const sets = workout!.groups[gIdx].movements[mIdx].sets.map((s, i) =>
       i === sIdx ? { ...s, ...patch } : s,
     );
-    updateMovement(mIdx, { sets });
+    updateMovement(gIdx, mIdx, { sets });
   }
 
-  function deleteSet(mIdx: number, sIdx: number) {
-    updateMovement(mIdx, {
-      sets: workout!.movements[mIdx].sets.filter((_, i) => i !== sIdx),
+  function deleteSet(gIdx: number, mIdx: number, sIdx: number) {
+    updateMovement(gIdx, mIdx, {
+      sets: workout!.groups[gIdx].movements[mIdx].sets.filter((_, i) => i !== sIdx),
     });
   }
 
-  function addSet(mIdx: number) {
-    const sets = workout!.movements[mIdx].sets;
-    const movement = workout!.movements[mIdx];
+  function addSet(gIdx: number, mIdx: number) {
+    const movement = workout!.groups[gIdx].movements[mIdx];
+    const sets = movement.sets;
     const last = sets[sets.length - 1];
     const newSet = last
       ? { ...last, weight: { ...last.weight } }
       : movement.maxId != null
         ? { reps: 5, count: 1, weight: { type: "percentage" as const, value: 80 } }
         : { reps: 5, count: 1, weight: { type: "absolute" as const, value: 0 } };
-    updateMovement(mIdx, { sets: [...sets, newSet] });
+    updateMovement(gIdx, mIdx, { sets: [...sets, newSet] });
   }
 
   return (
@@ -117,29 +136,47 @@ export default function WorkoutEditor() {
         onBlur={(e) => save({ name: e.target.value })}
       />
 
-      {workout.movements.map((movement, mIdx) => (
-        <article key={mIdx}>
+      {workout.groups.map((group, gIdx) => (
+        <article key={gIdx}>
           <header>
-            <div
-              style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
-            >
+            <fieldset className="grid">
               <input
                 type="text"
-                placeholder="Movement name"
-                defaultValue={movement.name}
-                style={{ flex: 1 }}
-                onBlur={(e) => updateMovement(mIdx, { name: e.target.value })}
+                placeholder="rest (e.g. 3min)"
+                defaultValue={
+                  group.restSeconds != null
+                    ? formatRestSeconds(group.restSeconds)
+                    : ""
+                }
+                onBlur={(e) => {
+                  const secs = parseRestSeconds(e.target.value);
+                  updateGroup(gIdx, { restSeconds: secs });
+                  e.target.value = secs != null ? formatRestSeconds(secs) : "";
+                }}
               />
-              <button
-                type="button"
-                className="secondary outline"
-                style={{ width: "auto" }}
-                onClick={() => deleteMovement(mIdx)}
-              >
-                &times;
-              </button>
-            </div>
-            <fieldset className="grid">
+            </fieldset>
+          </header>
+
+          {group.movements.map((movement, mIdx) => (
+            <div key={mIdx}>
+              {mIdx > 0 && <hr />}
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <input
+                  type="text"
+                  placeholder="Movement name"
+                  defaultValue={movement.name}
+                  style={{ flex: 1 }}
+                  onBlur={(e) => updateMovement(gIdx, mIdx, { name: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="secondary outline"
+                  style={{ width: "auto" }}
+                  onClick={() => deleteMovement(gIdx, mIdx)}
+                >
+                  &times;
+                </button>
+              </div>
               <select
                 value={movement.maxId ?? ""}
                 onChange={(e) => {
@@ -149,7 +186,7 @@ export default function WorkoutEditor() {
                     ...s,
                     weight: { type, value: s.weight.value },
                   }));
-                  updateMovement(mIdx, { maxId, sets });
+                  updateMovement(gIdx, mIdx, { maxId, sets });
                 }}
               >
                 <option value="">No max</option>
@@ -161,85 +198,81 @@ export default function WorkoutEditor() {
                     </option>
                   ))}
               </select>
-              <input
-                type="text"
-                placeholder="rest (e.g. 3min)"
-                defaultValue={
-                  movement.restSeconds != null
-                    ? formatRestSeconds(movement.restSeconds)
-                    : ""
-                }
-                onBlur={(e) => {
-                  const secs = parseRestSeconds(e.target.value);
-                  updateMovement(mIdx, { restSeconds: secs });
-                  e.target.value = secs != null ? formatRestSeconds(secs) : "";
-                }}
-              />
-            </fieldset>
-          </header>
 
-          {movement.sets.map((set, sIdx) => (
-            <fieldset key={sIdx}>
-              <legend><small>Set {sIdx + 1}</small></legend>
-              <fieldset role="group">
-                <input
-                  type="number"
-                  min={1}
-                  placeholder="sets"
-                  defaultValue={set.count}
-                  onBlur={(e) =>
-                    updateSet(mIdx, sIdx, {
-                      count: numbdfined(e.target.value) ?? 1,
-                    })
-                  }
-                />
-                <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>&times;</span>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder="reps"
-                  defaultValue={set.reps}
-                  onBlur={(e) =>
-                    updateSet(mIdx, sIdx, {
-                      reps: numbdfined(e.target.value) ?? 1,
-                    })
-                  }
-                />
-                <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>@</span>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder={movement.maxId != null ? "%" : "weight"}
-                  defaultValue={set.weight.value}
-                  onBlur={(e) => {
-                    const val = numbdfined(e.target.value) ?? 0;
-                    updateSet(mIdx, sIdx, {
-                      weight: { ...set.weight, value: val },
-                    });
-                  }}
-                />
-                <button
-                  type="button"
-                  className="secondary outline"
-                  style={{ width: "auto" }}
-                  onClick={() => deleteSet(mIdx, sIdx)}
-                >
-                  &times;
-                </button>
-              </fieldset>
-            </fieldset>
+              {movement.sets.map((set, sIdx) => (
+                <fieldset key={sIdx}>
+                  <legend><small>Set {sIdx + 1}</small></legend>
+                  <fieldset role="group">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="sets"
+                      defaultValue={set.count}
+                      onBlur={(e) =>
+                        updateSet(gIdx, mIdx, sIdx, {
+                          count: numbdfined(e.target.value) ?? 1,
+                        })
+                      }
+                    />
+                    <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>&times;</span>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="reps"
+                      defaultValue={set.reps}
+                      onBlur={(e) =>
+                        updateSet(gIdx, mIdx, sIdx, {
+                          reps: numbdfined(e.target.value) ?? 1,
+                        })
+                      }
+                    />
+                    <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>@</span>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder={movement.maxId != null ? "%" : "weight"}
+                      defaultValue={set.weight.value}
+                      onBlur={(e) => {
+                        const val = numbdfined(e.target.value) ?? 0;
+                        updateSet(gIdx, mIdx, sIdx, {
+                          weight: { ...set.weight, value: val },
+                        });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="secondary outline"
+                      style={{ width: "auto" }}
+                      onClick={() => deleteSet(gIdx, mIdx, sIdx)}
+                    >
+                      &times;
+                    </button>
+                  </fieldset>
+                </fieldset>
+              ))}
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => addSet(gIdx, mIdx)}
+              >
+                Add set
+              </button>
+            </div>
           ))}
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => addSet(mIdx)}
-          >
-            Add set
-          </button>
+
+          <footer>
+            <button
+              type="button"
+              className="secondary outline"
+              onClick={() => addMovementToGroup(gIdx)}
+            >
+              + Add to superset
+            </button>
+          </footer>
         </article>
       ))}
 
-      <button type="button" onClick={addMovement}>
+      <button type="button" onClick={addGroup}>
         Add movement
       </button>
     </>

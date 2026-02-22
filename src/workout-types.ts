@@ -10,11 +10,15 @@ export interface Movement {
   name: string;
   maxId: number | null;
   sets: WorkoutSet[];
+}
+
+export interface MovementGroup {
+  movements: Movement[];
   restSeconds?: number;
 }
 
 export interface Workout {
   id?: number;
   name: string;
-  movements: Movement[];
+  groups: MovementGroup[];
 }
