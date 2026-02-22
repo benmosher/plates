@@ -57,7 +57,7 @@ function ShareDialog({ workout }: { workout: Workout }) {
 }
 
 export default function WorkoutList() {
-  const { workouts, putWorkout, deleteWorkout } = useMassStorage();
+  const { workouts, putWorkout } = useMassStorage();
   const navigate = useNavigate();
 
   return (
@@ -71,24 +71,16 @@ export default function WorkoutList() {
             {workouts.map((w) => (
               <tr key={w.id}>
                 <td>
-                  <Link to={`/workouts/${w.id}/edit`}>
+                  <Link to={`/workouts/${w.id}/view`}>
                     {w.name || "(untitled)"}
                   </Link>
                 </td>
                 <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
                   <span style={{ display: "inline-flex", gap: "0.25rem" }}>
                     <ShareDialog workout={w} />
-                    <Link to={`/workouts/${w.id}/view`} role="button" className="secondary outline" style={btnStyle}>
-                      View
+                    <Link to={`/workouts/${w.id}/edit`} role="button" className="secondary outline" style={btnStyle}>
+                      Edit
                     </Link>
-                    <button
-                      type="button"
-                      className="secondary outline"
-                      style={btnStyle}
-                      onClick={() => deleteWorkout(w.id!)}
-                    >
-                      &times;
-                    </button>
                   </span>
                 </td>
               </tr>

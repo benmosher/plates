@@ -1,7 +1,8 @@
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { useMassStorage } from "./plate-db";
 import { Workout, MovementGroup, Movement, WorkoutSet } from "./workout-types";
 import { numbdfined } from "./utils";
+import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
 
 /** Parse human-readable rest time to seconds. Handles: "3min", "90s", "1:30", "90". */
 function parseRestSeconds(input: string): number | undefined {
@@ -41,7 +42,8 @@ function formatRestSeconds(seconds: number): string {
 
 export default function WorkoutEditor() {
   const { id } = useParams<{ id: string }>();
-  const { workouts, putWorkout, maxes } = useMassStorage();
+  const { workouts, putWorkout, deleteWorkout, maxes } = useMassStorage();
+  const navigate = useNavigate();
   const workout = workouts.find((w) => w.id === Number(id));
 
   if (!workout) return <p>Workout not found.</p>;
@@ -270,9 +272,21 @@ export default function WorkoutEditor() {
         </article>
       ))}
 
-      <button type="button" onClick={addGroup}>
-        Add movement
-      </button>
+      <div>
+        <button type="button" onClick={addGroup}>
+          Add movement
+        </button>
+      </div>
+      <div>
+        <DoubleClickConfirmButton
+          onClick={() => {
+            deleteWorkout(workout!.id!);
+            navigate("/workouts");
+          }}
+        >
+          Delete workout
+        </DoubleClickConfirmButton>
+      </div>
     </>
   );
 }
