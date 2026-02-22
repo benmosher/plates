@@ -40,11 +40,9 @@ function ShareDialog({ workout }: { workout: Workout }) {
           {shareUrl && (
             <div style={{ textAlign: "center" }}>
               <QRCodeSVG value={shareUrl} size={256} />
-              <p style={{ marginTop: "1rem" }}>
-                <small style={{ wordBreak: "break-all" }}>{shareUrl}</small>
-              </p>
               <button
                 type="button"
+                style={{ marginTop: "1rem" }}
                 onClick={() => navigator.clipboard.writeText(shareUrl)}
               >
                 Copy link
