@@ -2,7 +2,7 @@
   "short_name": "Plates",
   "name": "Plate Math",
   "start_url": "https://benmosher.github.io/plates/",
-  "display": "standalone",
+  "display": "browser",
   "icons": [
     {
       "src": "icon.png",
