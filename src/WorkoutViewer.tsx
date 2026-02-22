@@ -1,9 +1,6 @@
 import { useParams, Link } from "react-router";
-import { useMassStorage, Plate, Bar } from "./plate-db";
+import { useMassStorage } from "./plate-db";
 import { WorkoutSet } from "./workout-types";
-import { chooseBar, determinePlates } from "./plate-math";
-import BarView from "./BarView";
-import { useMemo } from "react";
 
 function formatRest(seconds: number): string {
   if (seconds % 60 === 0) return `${seconds / 60}min`;
@@ -12,25 +9,27 @@ function formatRest(seconds: number): string {
   return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
 }
 
+function buildSetHash(set: WorkoutSet, maxWeight: number | null, target: number): string {
+  const params = new URLSearchParams();
+  if (set.weight.type === "percentage" && maxWeight != null) {
+    params.set("pct", String(set.weight.value));
+    params.set("1rm", String(maxWeight));
+  } else {
+    params.set("weight", String(target));
+  }
+  return `/#${params.toString()}`;
+}
+
 interface ResolvedSet {
   label: string;
   target: number;
-  bar: Bar | null;
-  plates: readonly (Plate & { count: number })[];
+  hash: string;
 }
 
 export default function WorkoutViewer() {
   const { id } = useParams<{ id: string }>();
-  const { workouts, plates, bars, maxes } = useMassStorage();
+  const { workouts, maxes } = useMassStorage();
   const workout = workouts.find((w) => w.id === Number(id));
-
-  const validPlates = useMemo<readonly (Plate & { count: number })[]>(() => {
-    const filtered = plates.filter((p) => p.count && p.weight) as (Plate & {
-      count: number;
-    })[];
-    filtered.sort((a, b) => a.weight - b.weight);
-    return filtered;
-  }, [plates]);
 
   if (!workout) return <p>Workout not found.</p>;
 
@@ -49,65 +48,80 @@ export default function WorkoutViewer() {
         </Link>
       </div>
 
-      {workout.movements.map((movement, mIdx) => {
-        const linkedMax = movement.maxId != null
-          ? maxes.find((m) => m.id === movement.maxId)
-          : null;
-        const maxWeight = linkedMax?.weight ?? null;
+      {workout.groups.map((group, gIdx) => {
+        const movementInfos = group.movements.map((movement) => {
+          const linkedMax = movement.maxId != null
+            ? maxes.find((m) => m.id === movement.maxId)
+            : null;
+          const maxWeight = linkedMax?.weight ?? null;
 
-        // Expand sets by count and resolve weights
-        const resolved: ResolvedSet[] = [];
-        let setNum = 1;
-        for (const set of movement.sets) {
-          for (let c = 0; c < set.count; c++) {
-            const target = resolveWeight(set, maxWeight);
-            const bar = chooseBar(bars, target, "barbell");
-            const detPlates = determinePlates(target, bar, validPlates);
-            const weightLabel = set.weight.type === "percentage"
-              ? `${set.weight.value}% = ${target}`
-              : `${target}`;
-            resolved.push({
-              label: `Set ${setNum}: ${set.reps} reps @ ${weightLabel}`,
-              target,
-              bar,
-              plates: detPlates,
-            });
-            setNum++;
+          const resolved: ResolvedSet[] = [];
+          let setNum = 1;
+          for (const set of movement.sets) {
+            for (let c = 0; c < set.count; c++) {
+              const target = resolveWeight(set, maxWeight);
+              const weightLabel = set.weight.type === "percentage"
+                ? `${set.weight.value}% = ${target}`
+                : `${target}`;
+              resolved.push({
+                label: `Set ${setNum}: ${set.reps} reps @ ${weightLabel}`,
+                target,
+                hash: buildSetHash(set, maxWeight, target),
+              });
+              setNum++;
+            }
           }
-        }
 
-        // Group consecutive identical weights
-        const groups: { sets: ResolvedSet[]; count: number }[] = [];
-        for (const r of resolved) {
-          const last = groups[groups.length - 1];
-          if (last && last.sets[0].target === r.target) {
-            last.sets.push(r);
-            last.count++;
-          } else {
-            groups.push({ sets: [r], count: 1 });
+          // group consecutive identical weights
+          const weightGroups: { first: ResolvedSet; count: number }[] = [];
+          for (const r of resolved) {
+            const last = weightGroups[weightGroups.length - 1];
+            if (last && last.first.target === r.target) {
+              last.count++;
+            } else {
+              weightGroups.push({ first: r, count: 1 });
+            }
           }
-        }
+
+          return { movement, linkedMax, weightGroups };
+        });
+
+        const summaryName = movementInfos
+          .map(({ movement, linkedMax }) => movement.name || linkedMax?.label || "(unnamed)")
+          .join(" + ");
 
         return (
-          <details key={mIdx} open>
+          <article key={gIdx}>
+          <details open>
             <summary>
-              <strong>{movement.name || linkedMax?.label || "(unnamed)"}</strong>
-              {linkedMax && ` (${linkedMax.weight})`}
-              {movement.restSeconds != null && ` — ${formatRest(movement.restSeconds)} rest`}
+              <strong>{summaryName}</strong>
+              {group.restSeconds != null && ` — ${formatRest(group.restSeconds)} rest`}
             </summary>
-            {groups.map((group, gIdx) => {
-              const first = group.sets[0];
-              const label = group.count > 1
-                ? `${first.label} (\u00d7${group.count})`
-                : first.label;
-              return (
-              <section key={gIdx}>
-                <small>{label}</small>
-                <BarView determinedPlates={first.plates} bar={first.bar} />
-              </section>
-              );
-            })}
+
+            {movementInfos.map(({ movement, linkedMax, weightGroups }, mIdx) => (
+              <div key={mIdx}>
+                {movementInfos.length > 1 && (
+                  <small>
+                    <strong>{movement.name || linkedMax?.label || "(unnamed)"}</strong>
+                    {linkedMax && ` (${linkedMax.weight})`}
+                  </small>
+                )}
+                <fieldset className="grid">
+                  {weightGroups.map((wg, wgIdx) => {
+                    const label = wg.count > 1
+                      ? `${wg.first.label} (\u00d7${wg.count})`
+                      : wg.first.label;
+                    return (
+                      <Link key={wgIdx} to={wg.first.hash} role="button" className="secondary outline">
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </fieldset>
+              </div>
+            ))}
           </details>
+          </article>
         );
       })}
     </>

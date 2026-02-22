@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router";
 import { useMassStorage } from "./plate-db";
-import { Workout, Movement, WorkoutSet } from "./workout-types";
+import { Workout, MovementGroup, Movement, WorkoutSet } from "./workout-types";
 import { numbdfined } from "./utils";
 
 /** Parse human-readable rest time to seconds. Handles: "3min", "90s", "1:30", "90". */
@@ -14,7 +14,8 @@ function parseRestSeconds(input: string): number | undefined {
 
   // "2min30s", "2m30s"
   const compoundMatch = s.match(/^(\d+)\s*m(?:in)?\s*(\d+)\s*s(?:ec)?$/i);
-  if (compoundMatch) return parseInt(compoundMatch[1]) * 60 + parseInt(compoundMatch[2]);
+  if (compoundMatch)
+    return parseInt(compoundMatch[1]) * 60 + parseInt(compoundMatch[2]);
 
   // "3min", "3m"
   const minMatch = s.match(/^(\d+(?:\.\d+)?)\s*m(?:in)?$/i);
@@ -49,53 +50,82 @@ export default function WorkoutEditor() {
     putWorkout({ ...workout!, ...patch });
   }
 
-  function updateMovement(idx: number, patch: Partial<Movement>) {
-    const movements = workout!.movements.map((m, i) =>
-      i === idx ? { ...m, ...patch } : m,
+  function updateGroup(gIdx: number, patch: Partial<MovementGroup>) {
+    const groups = workout!.groups.map((g, i) =>
+      i === gIdx ? { ...g, ...patch } : g,
     );
-    save({ movements });
+    save({ groups });
   }
 
-  function deleteMovement(idx: number) {
-    save({ movements: workout!.movements.filter((_, i) => i !== idx) });
-  }
-
-  function addMovement() {
+  function addGroup() {
     save({
-      movements: [
-        ...workout!.movements,
-        { name: "", maxId: null, sets: [] },
-      ],
+      groups: [...workout!.groups, { movements: [{ name: "", maxId: null, sets: [] }] }],
     });
   }
 
-  function updateSet(mIdx: number, sIdx: number, patch: Partial<WorkoutSet>) {
-    const sets = workout!.movements[mIdx].sets.map((s, i) =>
+  function updateMovement(gIdx: number, mIdx: number, patch: Partial<Movement>) {
+    const movements = workout!.groups[gIdx].movements.map((m, i) =>
+      i === mIdx ? { ...m, ...patch } : m,
+    );
+    updateGroup(gIdx, { movements });
+  }
+
+  function deleteMovement(gIdx: number, mIdx: number) {
+    const group = workout!.groups[gIdx];
+    if (group.movements.length === 1) {
+      save({ groups: workout!.groups.filter((_, i) => i !== gIdx) });
+    } else {
+      updateGroup(gIdx, { movements: group.movements.filter((_, i) => i !== mIdx) });
+    }
+  }
+
+  function addMovementToGroup(gIdx: number) {
+    const group = workout!.groups[gIdx];
+    updateGroup(gIdx, {
+      movements: [...group.movements, { name: "", maxId: null, sets: [] }],
+    });
+  }
+
+  function updateSet(gIdx: number, mIdx: number, sIdx: number, patch: Partial<WorkoutSet>) {
+    const sets = workout!.groups[gIdx].movements[mIdx].sets.map((s, i) =>
       i === sIdx ? { ...s, ...patch } : s,
     );
-    updateMovement(mIdx, { sets });
+    updateMovement(gIdx, mIdx, { sets });
   }
 
-  function deleteSet(mIdx: number, sIdx: number) {
-    updateMovement(mIdx, {
-      sets: workout!.movements[mIdx].sets.filter((_, i) => i !== sIdx),
+  function deleteSet(gIdx: number, mIdx: number, sIdx: number) {
+    updateMovement(gIdx, mIdx, {
+      sets: workout!.groups[gIdx].movements[mIdx].sets.filter((_, i) => i !== sIdx),
     });
   }
 
-  function addSet(mIdx: number) {
-    const sets = workout!.movements[mIdx].sets;
+  function addSet(gIdx: number, mIdx: number) {
+    const movement = workout!.groups[gIdx].movements[mIdx];
+    const sets = movement.sets;
     const last = sets[sets.length - 1];
     const newSet = last
       ? { ...last, weight: { ...last.weight } }
-      : { reps: 5, count: 1, weight: { type: "absolute" as const, value: 0 } };
-    updateMovement(mIdx, { sets: [...sets, newSet] });
+      : movement.maxId != null
+        ? { reps: 5, count: 1, weight: { type: "percentage" as const, value: 80 } }
+        : { reps: 5, count: 1, weight: { type: "absolute" as const, value: 0 } };
+    updateMovement(gIdx, mIdx, { sets: [...sets, newSet] });
   }
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <h3>Edit Workout</h3>
-        <Link to={`/workouts/${id}/view`} role="button" className="secondary outline" style={{ width: "auto" }}>
+        <Link
+          to={`/workouts/${id}/view`}
+          role="button"
+          className="secondary outline"
+        >
           View
         </Link>
       </div>
@@ -106,125 +136,141 @@ export default function WorkoutEditor() {
         onBlur={(e) => save({ name: e.target.value })}
       />
 
-      {workout.movements.map((movement, mIdx) => (
-        <article key={mIdx}>
-          <header style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <input
-              type="text"
-              placeholder="Movement name"
-              defaultValue={movement.name}
-              style={{ marginBottom: 0 }}
-              onBlur={(e) => updateMovement(mIdx, { name: e.target.value })}
-            />
-            <select
-              value={movement.maxId ?? ""}
-              style={{ marginBottom: 0, width: "auto" }}
-              onChange={(e) =>
-                updateMovement(mIdx, {
-                  maxId: e.target.value ? Number(e.target.value) : null,
-                })
-              }
-            >
-              <option value="">No max</option>
-              {maxes
-                .filter((m) => m.label && m.weight)
-                .map((m) => (
-                  <option key={m.id} value={m.id!}>
-                    {m.label} ({m.weight})
-                  </option>
-                ))}
-            </select>
-            <input
-              type="text"
-              placeholder="rest (e.g. 3min)"
-              defaultValue={movement.restSeconds != null ? formatRestSeconds(movement.restSeconds) : ""}
-              style={{ marginBottom: 0, width: "7rem" }}
-              onBlur={(e) => {
-                const secs = parseRestSeconds(e.target.value);
-                updateMovement(mIdx, { restSeconds: secs });
-                e.target.value = secs != null ? formatRestSeconds(secs) : "";
-              }}
-            />
+      {workout.groups.map((group, gIdx) => (
+        <article key={gIdx}>
+          {group.movements.map((movement, mIdx) => (
+            <div key={mIdx}>
+              {mIdx > 0 && <hr />}
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <input
+                  type="text"
+                  placeholder="Movement name"
+                  defaultValue={movement.name}
+                  style={{ flex: 1 }}
+                  onBlur={(e) => updateMovement(gIdx, mIdx, { name: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="secondary outline"
+                  style={{ width: "auto" }}
+                  onClick={() => deleteMovement(gIdx, mIdx)}
+                >
+                  &times;
+                </button>
+              </div>
+              <select
+                value={movement.maxId ?? ""}
+                onChange={(e) => {
+                  const maxId = e.target.value ? Number(e.target.value) : null;
+                  const type = maxId != null ? "percentage" as const : "absolute" as const;
+                  const sets = movement.sets.map((s) => ({
+                    ...s,
+                    weight: { type, value: s.weight.value },
+                  }));
+                  updateMovement(gIdx, mIdx, { maxId, sets });
+                }}
+              >
+                <option value="">No max</option>
+                {maxes
+                  .filter((m) => m.label && m.weight)
+                  .map((m) => (
+                    <option key={m.id} value={m.id!}>
+                      {m.label} ({m.weight})
+                    </option>
+                  ))}
+              </select>
+
+              {movement.sets.map((set, sIdx) => (
+                <fieldset key={sIdx}>
+                  <legend><small>Set {sIdx + 1}</small></legend>
+                  <fieldset role="group">
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="sets"
+                      defaultValue={set.count}
+                      onBlur={(e) =>
+                        updateSet(gIdx, mIdx, sIdx, {
+                          count: numbdfined(e.target.value) ?? 1,
+                        })
+                      }
+                    />
+                    <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>&times;</span>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="reps"
+                      defaultValue={set.reps}
+                      onBlur={(e) =>
+                        updateSet(gIdx, mIdx, sIdx, {
+                          reps: numbdfined(e.target.value) ?? 1,
+                        })
+                      }
+                    />
+                    <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>@</span>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder={movement.maxId != null ? "%" : "weight"}
+                      defaultValue={set.weight.value}
+                      onBlur={(e) => {
+                        const val = numbdfined(e.target.value) ?? 0;
+                        updateSet(gIdx, mIdx, sIdx, {
+                          weight: { ...set.weight, value: val },
+                        });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="secondary outline"
+                      style={{ width: "auto" }}
+                      onClick={() => deleteSet(gIdx, mIdx, sIdx)}
+                    >
+                      &times;
+                    </button>
+                  </fieldset>
+                </fieldset>
+              ))}
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => addSet(gIdx, mIdx)}
+              >
+                Add set
+              </button>
+            </div>
+          ))}
+
+          <footer>
+            <fieldset>
+              <legend><small>Rest</small></legend>
+              <input
+                type="text"
+                placeholder="e.g. 3min"
+                defaultValue={
+                  group.restSeconds != null
+                    ? formatRestSeconds(group.restSeconds)
+                    : ""
+                }
+                onBlur={(e) => {
+                  const secs = parseRestSeconds(e.target.value);
+                  updateGroup(gIdx, { restSeconds: secs });
+                  e.target.value = secs != null ? formatRestSeconds(secs) : "";
+                }}
+              />
+            </fieldset>
             <button
               type="button"
               className="secondary outline"
-              style={{ width: "auto", marginBottom: 0 }}
-              onClick={() => deleteMovement(mIdx)}
+              onClick={() => addMovementToGroup(gIdx)}
             >
-              &times;
+              + Add to superset
             </button>
-          </header>
-
-          {movement.sets.map((set, sIdx) => (
-            <fieldset role="group" key={sIdx}>
-              <input
-                type="number"
-                min={1}
-                placeholder="sets"
-                defaultValue={set.count}
-                style={{ width: "4rem" }}
-                onBlur={(e) =>
-                  updateSet(mIdx, sIdx, {
-                    count: numbdfined(e.target.value) ?? 1,
-                  })
-                }
-              />
-              <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>&times;</span>
-              <input
-                type="number"
-                min={1}
-                placeholder="reps"
-                defaultValue={set.reps}
-                style={{ width: "4rem" }}
-                onBlur={(e) =>
-                  updateSet(mIdx, sIdx, {
-                    reps: numbdfined(e.target.value) ?? 1,
-                  })
-                }
-              />
-              <span style={{ alignSelf: "center", padding: "0 0.25rem" }}>@</span>
-              <input
-                type="number"
-                min={0}
-                placeholder={set.weight.type === "percentage" ? "%" : "weight"}
-                defaultValue={set.weight.value}
-                onBlur={(e) => {
-                  const val = numbdfined(e.target.value) ?? 0;
-                  updateSet(mIdx, sIdx, {
-                    weight: { ...set.weight, value: val },
-                  });
-                }}
-              />
-              <select
-                value={set.weight.type}
-                style={{ width: "auto" }}
-                onChange={(e) => {
-                  const type = e.target.value as "absolute" | "percentage";
-                  updateSet(mIdx, sIdx, {
-                    weight: { type, value: set.weight.value },
-                  });
-                }}
-              >
-                <option value="absolute">lb</option>
-                <option value="percentage">%</option>
-              </select>
-              <button
-                type="button"
-                className="secondary outline"
-                style={{ width: "auto" }}
-                onClick={() => deleteSet(mIdx, sIdx)}
-              >
-                &times;
-              </button>
-            </fieldset>
-          ))}
-          <button type="button" className="secondary" onClick={() => addSet(mIdx)}>
-            Add set
-          </button>
+          </footer>
         </article>
       ))}
 
-      <button type="button" onClick={addMovement}>
+      <button type="button" onClick={addGroup}>
         Add movement
       </button>
     </>

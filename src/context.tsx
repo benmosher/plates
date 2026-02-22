@@ -1,4 +1,5 @@
 import { createContext, use, useEffect, useReducer } from "react";
+import { useLocation } from "react-router";
 import { numbornull } from "./utils";
 
 type State = {
@@ -112,23 +113,19 @@ export function useRawAppState() {
     getInitialState,
   );
 
-  useEffect(function listenToPopState() {
-    const onPopState = () => {
-      // get only the defined values from the URL
-      const newState = Object.fromEntries(
-        Object.entries(getUrlState()).filter(([, v]) => v != null),
-      ) as Partial<State>;
-
-      dispatch(newState);
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
+  const location = useLocation();
+  useEffect(() => {
+    // get only the defined values from the URL
+    const newState = Object.fromEntries(
+      Object.entries(getUrlState()).filter(([, v]) => v != null),
+    ) as Partial<State>;
+    dispatch(newState);
+  }, [location.hash]);
 
   return [state, dispatch] as const;
 }
 
-function pushUrlState(state: State) {
+function updateUrlState(state: State) {
   const current = getUrlState();
   if (
     Object.entries(current).every(
@@ -137,13 +134,13 @@ function pushUrlState(state: State) {
   )
     return; // don't push a state if we're matching
 
-  history.pushState(null, "", buildUrlHash(state));
+  history.replaceState(null, "", buildUrlHash(state));
 }
 
 export function useSaveState(state: State) {
   useEffect(function saveState() {
     localStorage.setItem("appState", JSON.stringify(state));
-    const cancelHandle = setTimeout(pushUrlState, 1000, state);
+    const cancelHandle = setTimeout(updateUrlState, 1000, state);
     return () => clearTimeout(cancelHandle);
   }, Object.values(state));
 }

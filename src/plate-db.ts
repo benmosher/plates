@@ -1,7 +1,18 @@
 // create a database
 
 import { useMemo, useSyncExternalStore } from "react";
-import { Workout } from "./workout-types";
+import { Workout, MovementGroup } from "./workout-types";
+
+/** Migrate old format (movements[]) to new format (groups[]). */
+function migrateWorkout(raw: any): Workout {
+  const items: any[] = raw.groups ?? raw.movements ?? [];
+  const groups: MovementGroup[] = items.map((item) =>
+    "sets" in item
+      ? { movements: [{ name: item.name, maxId: item.maxId, sets: item.sets }], restSeconds: item.restSeconds }
+      : item,
+  );
+  return { id: raw.id, name: raw.name, groups };
+}
 
 export interface Plate {
   count?: number;
@@ -342,7 +353,8 @@ function initializeWorkoutDatabase(): Promise<void> {
       const store = txn.objectStore("workouts");
       const getAll = store.getAll();
       getAll.onsuccess = function () {
-        for (const w of this.result as Iterable<Workout>) {
+        for (const raw of this.result as Iterable<any>) {
+          const w = migrateWorkout(raw);
           WORKOUT_MAP.set(w.id!, w);
         }
         READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
