@@ -52,24 +52,11 @@ async function compress(data: Uint8Array): Promise<Uint8Array> {
 
 async function decompress(data: Uint8Array): Promise<Uint8Array> {
   const ds = new DecompressionStream("deflate-raw");
-  const writer = ds.writable.getWriter();
-  writer.write(data);
-  writer.close();
-  const reader = ds.readable.getReader();
-  const chunks: Uint8Array[] = [];
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-  }
-  const total = chunks.reduce((n, c) => n + c.byteLength, 0);
-  const result = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return result;
+  const blob = new Blob([data]);
+  const stream = blob.stream().pipeThrough(ds);
+  const out = new Response(stream);
+  const buffer = await out.arrayBuffer();
+  return new Uint8Array(buffer);
 }
 
 export async function exportWorkout(
