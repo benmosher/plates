@@ -80,7 +80,7 @@ export default function WorkoutList() {
       <button
         type="button"
         onClick={async () => {
-          const id = await putWorkout({ name: "", movements: [] });
+          const id = await putWorkout({ name: "", groups: [] });
           navigate(`/workouts/${id}/edit`);
         }}
       >
