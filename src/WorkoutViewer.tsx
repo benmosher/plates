@@ -11,8 +11,8 @@ function formatRest(seconds: number): string {
 
 function buildSetHash(set: WorkoutSet, maxWeight: number | null, target: number): string {
   const params = new URLSearchParams();
-  if (set.weight.type === "percentage" && maxWeight != null) {
-    params.set("pct", String(set.weight.value));
+  if (maxWeight != null) {
+    params.set("pct", String(set.weight));
     params.set("1rm", String(maxWeight));
   } else {
     params.set("weight", String(target));
@@ -34,9 +34,8 @@ export default function WorkoutViewer() {
   if (!workout) return <p>Workout not found.</p>;
 
   function resolveWeight(set: WorkoutSet, maxWeight: number | null): number {
-    if (set.weight.type === "absolute") return set.weight.value;
-    if (maxWeight == null) return 0;
-    return Math.round((set.weight.value / 100) * maxWeight);
+    if (maxWeight == null) return set.weight;
+    return Math.round((set.weight / 100) * maxWeight);
   }
 
   return (
@@ -60,8 +59,8 @@ export default function WorkoutViewer() {
           for (const set of movement.sets) {
             for (let c = 0; c < set.count; c++) {
               const target = resolveWeight(set, maxWeight);
-              const weightLabel = set.weight.type === "percentage"
-                ? `${set.weight.value}% = ${target}`
+              const weightLabel = movement.maxId != null
+                ? `${set.weight}% = ${target}`
                 : `${target}`;
               resolved.push({
                 label: `Set ${setNum}: ${set.reps} reps @ ${weightLabel}`,

@@ -3,15 +3,24 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { Workout, MovementGroup } from "./workout-types";
 
-/** Migrate old format (movements[]) to new format (groups[]). */
+/** Migrate old formats to current shape. */
 function migrateWorkout(raw: any): Workout {
   const items: any[] = raw.groups ?? raw.movements ?? [];
   const groups: MovementGroup[] = items.map((item) =>
     "sets" in item
-      ? { movements: [{ name: item.name, maxId: item.maxId, sets: item.sets }], restSeconds: item.restSeconds }
-      : item,
+      ? { movements: [{ name: item.name, maxId: item.maxId, sets: migrateSets(item.sets) }], restSeconds: item.restSeconds }
+      : { ...item, movements: item.movements.map((m: any) => ({ ...m, sets: migrateSets(m.sets) })) },
   );
   return { id: raw.id, name: raw.name, groups };
+}
+
+/** Migrate weight from { type, value } object to plain number. */
+function migrateSets(sets: any[]): any[] {
+  return sets.map((s: any) =>
+    s.weight != null && typeof s.weight === "object" && "value" in s.weight
+      ? { ...s, weight: s.weight.value }
+      : s,
+  );
 }
 
 export interface Plate {

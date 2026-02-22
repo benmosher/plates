@@ -18,7 +18,7 @@ const workout: Workout = {
           name: "Back Squat",
           maxId: 1,
           sets: [
-            { reps: 5, count: 3, weight: { type: "percentage", value: 80 } },
+            { reps: 5, count: 3, weight: 80 },
           ],
         },
       ],
@@ -30,7 +30,7 @@ const workout: Workout = {
           name: "Bench Press",
           maxId: 2,
           sets: [
-            { reps: 8, count: 4, weight: { type: "percentage", value: 70 } },
+            { reps: 8, count: 4, weight: 70 },
           ],
         },
       ],
@@ -41,7 +41,7 @@ const workout: Workout = {
           name: "Curls",
           maxId: null,
           sets: [
-            { reps: 12, count: 3, weight: { type: "absolute", value: 30 } },
+            { reps: 12, count: 3, weight: 30 },
           ],
         },
       ],
@@ -74,7 +74,7 @@ describe("exportWorkout + decodeWorkout round-trip", () => {
     const decoded = await decodeWorkout(encoded);
     const sets = decoded.groups[0].movements[0].sets;
     expect(sets).toEqual([
-      { reps: 5, count: 3, weight: { type: "percentage", value: 80 } },
+      { reps: 5, count: 3, weight: 80 },
     ]);
   });
 
@@ -137,8 +137,8 @@ describe("exportWorkout edge cases", () => {
       groups: [
         {
           movements: [
-            { name: "A1", maxId: 1, sets: [{ reps: 10, count: 1, weight: { type: "percentage", value: 60 } }] },
-            { name: "A2", maxId: null, sets: [{ reps: 10, count: 1, weight: { type: "absolute", value: 50 } }] },
+            { name: "A1", maxId: 1, sets: [{ reps: 10, count: 1, weight: 60 }] },
+            { name: "A2", maxId: null, sets: [{ reps: 10, count: 1, weight: 50 }] },
           ],
           restSeconds: 60,
         },

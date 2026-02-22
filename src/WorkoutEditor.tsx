@@ -61,7 +61,7 @@ export default function WorkoutEditor() {
 
   function addGroup() {
     save({
-      groups: [...workout!.groups, { movements: [{ name: "", maxId: null, sets: [] }] }],
+      groups: [...workout!.groups, { movements: [{ name: "", maxId: null, sets: [{ reps: 5, count: 1, weight: 0 }] }] }],
     });
   }
 
@@ -84,7 +84,7 @@ export default function WorkoutEditor() {
   function addMovementToGroup(gIdx: number) {
     const group = workout!.groups[gIdx];
     updateGroup(gIdx, {
-      movements: [...group.movements, { name: "", maxId: null, sets: [] }],
+      movements: [...group.movements, { name: "", maxId: null, sets: [{ reps: 5, count: 1, weight: 0 }] }],
     });
   }
 
@@ -106,10 +106,10 @@ export default function WorkoutEditor() {
     const sets = movement.sets;
     const last = sets[sets.length - 1];
     const newSet = last
-      ? { ...last, weight: { ...last.weight } }
+      ? { ...last }
       : movement.maxId != null
-        ? { reps: 5, count: 1, weight: { type: "percentage" as const, value: 80 } }
-        : { reps: 5, count: 1, weight: { type: "absolute" as const, value: 0 } };
+        ? { reps: 5, count: 1, weight: 80 }
+        : { reps: 5, count: 1, weight: 0 };
     updateMovement(gIdx, mIdx, { sets: [...sets, newSet] });
   }
 
@@ -164,12 +164,7 @@ export default function WorkoutEditor() {
                 value={movement.maxId ?? ""}
                 onChange={(e) => {
                   const maxId = e.target.value ? Number(e.target.value) : null;
-                  const type = maxId != null ? "percentage" as const : "absolute" as const;
-                  const sets = movement.sets.map((s) => ({
-                    ...s,
-                    weight: { type, value: s.weight.value },
-                  }));
-                  updateMovement(gIdx, mIdx, { maxId, sets });
+                  updateMovement(gIdx, mIdx, { maxId });
                 }}
               >
                 <option value="">No max</option>
@@ -214,12 +209,10 @@ export default function WorkoutEditor() {
                       type="number"
                       min={0}
                       placeholder={movement.maxId != null ? "%" : "weight"}
-                      defaultValue={set.weight.value}
+                      defaultValue={set.weight || ""}
                       onBlur={(e) => {
                         const val = numbdfined(e.target.value) ?? 0;
-                        updateSet(gIdx, mIdx, sIdx, {
-                          weight: { ...set.weight, value: val },
-                        });
+                        updateSet(gIdx, mIdx, sIdx, { weight: val });
                       }}
                     />
                     <button

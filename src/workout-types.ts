@@ -1,9 +1,7 @@
 export interface WorkoutSet {
   reps: number;
   count: number;
-  weight:
-    | { type: "absolute"; value: number }
-    | { type: "percentage"; value: number };
+  weight: number;
 }
 
 export interface Movement {
