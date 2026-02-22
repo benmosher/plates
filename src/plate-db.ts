@@ -300,7 +300,7 @@ function deleteBar(idx: number) {
   txn.commit();
 }
 
-function putMax(max: Max): void {
+function putMax(max: Max): Promise<number> {
   if (db == null) {
     throw new Error("database not initialized");
   }
@@ -308,13 +308,17 @@ function putMax(max: Max): void {
   // write to the database
   const txn = db.transaction("maxes", "readwrite");
   const store = txn.objectStore("maxes");
-  store.put(max).onsuccess = function () {
-    const idMax = { ...max, id: this.result as number };
-    MAX_MAP.set(idMax.id, idMax);
-    READ_VIEW = { ...READ_VIEW, maxes: MAX_MAP };
-    _subscriptions.forEach((cb) => cb());
-  };
-  txn.commit();
+  return new Promise((resolve) => {
+    store.put(max).onsuccess = function () {
+      const id = this.result as number;
+      const idMax = { ...max, id };
+      MAX_MAP.set(id, idMax);
+      READ_VIEW = { ...READ_VIEW, maxes: MAX_MAP };
+      _subscriptions.forEach((cb) => cb());
+      resolve(id);
+    };
+    txn.commit();
+  });
 }
 
 function deleteMax(idx: number) {
@@ -452,7 +456,7 @@ interface MassStorage {
   putBar(bar: BarInput): void;
   deleteBar(idx: number): void;
 
-  putMax(max: Max): void;
+  putMax(max: Max): Promise<number>;
   deleteMax(id: number): void;
 
   putWorkout(workout: Workout): Promise<number>;

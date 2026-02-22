@@ -22,6 +22,7 @@ import {
 import WorkoutList from "./WorkoutList";
 import WorkoutEditor from "./WorkoutEditor";
 import WorkoutViewer from "./WorkoutViewer";
+import WorkoutImporter from "./WorkoutImporter";
 
 function Nav() {
   const computeHash = useUrlHash();
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/mass" element={<MassConfig />} />
         <Route path="/maxes" element={<MaxesEditor />} />
         <Route path="/workouts" element={<WorkoutList />} />
+        <Route path="/workouts/import" element={<WorkoutImporter />} />
         <Route path="/workouts/:id/edit" element={<WorkoutEditor />} />
         <Route path="/workouts/:id/view" element={<WorkoutViewer />} />
       </Routes>
