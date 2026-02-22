@@ -28,7 +28,7 @@ function ShareDialog({ workout }: { workout: Workout }) {
       >
         Share
       </button>
-      <dialog ref={dialogRef}>
+      <dialog ref={dialogRef} onClick={(e) => { if (e.target === dialogRef.current) dialogRef.current?.close(); }}>
         <article>
           <header>
             <button
@@ -41,13 +41,15 @@ function ShareDialog({ workout }: { workout: Workout }) {
           {shareUrl && (
             <div style={{ textAlign: "center" }}>
               <QRCodeSVG value={shareUrl} size={256} />
-              <button
-                type="button"
-                style={{ marginTop: "1rem" }}
-                onClick={() => navigator.clipboard.writeText(shareUrl)}
-              >
-                Copy link
-              </button>
+              <div>
+                <button
+                  type="button"
+                  style={{ marginTop: "1rem" }}
+                  onClick={() => navigator.clipboard.writeText(shareUrl)}
+                >
+                  Copy link
+                </button>
+              </div>
             </div>
           )}
         </article>
