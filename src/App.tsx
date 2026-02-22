@@ -137,8 +137,7 @@ function BarComputer({
   const validTarget = possibleWeights.includes(deferredTarget ?? -1);
 
   const weightSet = useWeightSet();
-  const hasTarget = target != null;
-  const inWeightSet = hasTarget && weightSet.weights.includes(target);
+  const inWeightSet = target != null && weightSet.weights.includes(target);
 
   const nudgeDown = useAutoRepeat(() => {
     const nudge = activeBar?.sliderMinStep;
@@ -247,7 +246,7 @@ function BarComputer({
                 </button>
               )}
             </fieldset>
-            {hasTarget && (
+            {target != null && (
               <button
                 type="button"
                 className="secondary"

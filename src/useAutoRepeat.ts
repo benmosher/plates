@@ -5,7 +5,7 @@ export function useAutoRepeat(
   delay = 300,
   interval = 100,
 ) {
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const callbackRef = useRef(callback);
   callbackRef.current = callback;
   const onPointerDown = useCallback(() => {
