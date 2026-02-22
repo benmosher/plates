@@ -138,25 +138,6 @@ export default function WorkoutEditor() {
 
       {workout.groups.map((group, gIdx) => (
         <article key={gIdx}>
-          <header>
-            <fieldset className="grid">
-              <input
-                type="text"
-                placeholder="rest (e.g. 3min)"
-                defaultValue={
-                  group.restSeconds != null
-                    ? formatRestSeconds(group.restSeconds)
-                    : ""
-                }
-                onBlur={(e) => {
-                  const secs = parseRestSeconds(e.target.value);
-                  updateGroup(gIdx, { restSeconds: secs });
-                  e.target.value = secs != null ? formatRestSeconds(secs) : "";
-                }}
-              />
-            </fieldset>
-          </header>
-
           {group.movements.map((movement, mIdx) => (
             <div key={mIdx}>
               {mIdx > 0 && <hr />}
@@ -261,6 +242,23 @@ export default function WorkoutEditor() {
           ))}
 
           <footer>
+            <fieldset>
+              <legend><small>Rest</small></legend>
+              <input
+                type="text"
+                placeholder="e.g. 3min"
+                defaultValue={
+                  group.restSeconds != null
+                    ? formatRestSeconds(group.restSeconds)
+                    : ""
+                }
+                onBlur={(e) => {
+                  const secs = parseRestSeconds(e.target.value);
+                  updateGroup(gIdx, { restSeconds: secs });
+                  e.target.value = secs != null ? formatRestSeconds(secs) : "";
+                }}
+              />
+            </fieldset>
             <button
               type="button"
               className="secondary outline"
