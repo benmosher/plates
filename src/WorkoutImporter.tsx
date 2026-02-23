@@ -100,6 +100,7 @@ export default function WorkoutImporter() {
             sets: m.sets,
           })),
           ...(g.restSeconds != null ? { restSeconds: g.restSeconds } : {}),
+          ...(g.notes ? { notes: g.notes } : {}),
         })),
       };
 
