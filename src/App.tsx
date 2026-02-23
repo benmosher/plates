@@ -288,26 +288,21 @@ function BarComputer({
                 dispatchState({ percentage: numbdfined(e.target.value) })
               }
             />
-            <datalist id="1rm-options">
-              {maxes
-                .filter(({ weight }) => weight)
-                .map(({ id, weight }, i) => (
-                  <option key={id ?? i} value={weight!} />
-                ))}
-            </datalist>
-            <input
-              type="number"
-              placeholder="base (e.g. 1RM)"
+            <select
               value={percentageBase ?? ""}
-              min={0}
-              list="1rm-options"
-              onFocus={clear}
-              onKeyDown={onEnterBlur}
-              onBlur={scrollToTop}
               onChange={(e) =>
                 dispatchState({ percentageBase: numbdfined(e.target.value) })
               }
-            />
+            >
+              <option value="">—</option>
+              {maxes
+                .filter(({ label, weight }) => label && weight)
+                .map(({ id, weight, label }, i) => (
+                  <option key={id ?? i} value={weight!}>
+                    {label} ({weight})
+                  </option>
+                ))}
+            </select>
           </fieldset>
           <input
             type="range"
@@ -319,19 +314,6 @@ function BarComputer({
               dispatchState({ percentage: numbdfined(e.target.value) })
             }
           />
-          <fieldset className="grid">
-            {maxes
-              .filter(({ label, weight }) => label && weight)
-              .map((max, i) => (
-                <button
-                  type="button"
-                  key={max.id ?? i}
-                  onClick={() => dispatchState({ percentageBase: max.weight })}
-                >
-                  {max.label} ({max.weight})
-                </button>
-              ))}
-          </fieldset>
           <small>
             (configure maxes <Link to="/maxes">here</Link>)
           </small>
