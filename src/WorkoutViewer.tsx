@@ -73,6 +73,13 @@ export default function WorkoutViewer() {
                       ? ` @ ${set.weight}${movement.maxId != null ? "%" : ""}`
                       : "";
                     const count = set.count > 1 ? `${set.count} \u00d7 ` : "";
+                    if (!set.weight) {
+                      return (
+                        <a key={sIdx} role="button" className="secondary outline" aria-disabled="true">
+                          {count}{reps}{weight}
+                        </a>
+                      );
+                    }
                     return (
                       <Link key={sIdx} to={buildSetHash(set, maxWeight)} role="button" className="secondary outline">
                         {count}{reps}{weight}
