@@ -9,21 +9,15 @@ function formatRest(seconds: number): string {
   return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
 }
 
-function buildSetHash(set: WorkoutSet, maxWeight: number | null, target: number): string {
+function buildSetHash(set: WorkoutSet, maxWeight: number | null): string {
   const params = new URLSearchParams();
   if (maxWeight != null) {
     params.set("pct", String(set.weight));
     params.set("1rm", String(maxWeight));
   } else {
-    params.set("weight", String(target));
+    params.set("weight", String(set.weight));
   }
   return `/#${params.toString()}`;
-}
-
-interface ResolvedSet {
-  label: string;
-  target: number;
-  hash: string;
 }
 
 export default function WorkoutViewer() {
@@ -32,11 +26,6 @@ export default function WorkoutViewer() {
   const workout = workouts.find((w) => w.id === Number(id));
 
   if (!workout) return <p>Workout not found.</p>;
-
-  function resolveWeight(set: WorkoutSet, maxWeight: number | null): number {
-    if (maxWeight == null) return set.weight;
-    return Math.round((set.weight / 100) * maxWeight);
-  }
 
   return (
     <>
@@ -52,37 +41,7 @@ export default function WorkoutViewer() {
           const linkedMax = movement.maxId != null
             ? maxes.find((m) => m.id === movement.maxId)
             : null;
-          const maxWeight = linkedMax?.weight ?? null;
-
-          const resolved: ResolvedSet[] = [];
-          let setNum = 1;
-          for (const set of movement.sets) {
-            for (let c = 0; c < set.count; c++) {
-              const target = resolveWeight(set, maxWeight);
-              const weightLabel = movement.maxId != null
-                ? `${set.weight}% = ${target}`
-                : `${target}`;
-              resolved.push({
-                label: `Set ${setNum}: ${set.reps} reps @ ${weightLabel}`,
-                target,
-                hash: buildSetHash(set, maxWeight, target),
-              });
-              setNum++;
-            }
-          }
-
-          // group consecutive identical weights
-          const weightGroups: { first: ResolvedSet; count: number }[] = [];
-          for (const r of resolved) {
-            const last = weightGroups[weightGroups.length - 1];
-            if (last && last.first.target === r.target) {
-              last.count++;
-            } else {
-              weightGroups.push({ first: r, count: 1 });
-            }
-          }
-
-          return { movement, linkedMax, weightGroups };
+          return { movement, linkedMax, maxWeight: linkedMax?.weight ?? null };
         });
 
         const summaryName = movementInfos
@@ -99,7 +58,7 @@ export default function WorkoutViewer() {
 
             {group.notes && <p><small>{group.notes}</small></p>}
 
-            {movementInfos.map(({ movement, linkedMax, weightGroups }, mIdx) => (
+            {movementInfos.map(({ movement, linkedMax, maxWeight }, mIdx) => (
               <div key={mIdx}>
                 {movementInfos.length > 1 && (
                   <small>
@@ -108,13 +67,15 @@ export default function WorkoutViewer() {
                   </small>
                 )}
                 <fieldset className="grid">
-                  {weightGroups.map((wg, wgIdx) => {
-                    const label = wg.count > 1
-                      ? `${wg.first.label} (\u00d7${wg.count})`
-                      : wg.first.label;
+                  {movement.sets.map((set, sIdx) => {
+                    const reps = `${set.reps} reps`;
+                    const weight = set.weight
+                      ? ` @ ${set.weight}${movement.maxId != null ? "%" : ""}`
+                      : "";
+                    const count = set.count > 1 ? `${set.count} \u00d7 ` : "";
                     return (
-                      <Link key={wgIdx} to={wg.first.hash} role="button" className="secondary outline">
-                        {label}
+                      <Link key={sIdx} to={buildSetHash(set, maxWeight)} role="button" className="secondary outline">
+                        {count}{reps}{weight}
                       </Link>
                     );
                   })}
