@@ -273,21 +273,46 @@ function BarComputer({
           />
 
           <small>or use a percentage:</small>
-          <fieldset role="group">
-            <input
-              type="number"
-              min={1}
-              max={100}
-              step={1}
-              value={percentage ?? ""}
-              placeholder="%"
-              onFocus={clear}
-              onKeyDown={onEnterBlur}
-              onBlur={scrollToTop}
-              onChange={(e) =>
-                dispatchState({ percentage: numbdfined(e.target.value) })
-              }
-            />
+          <fieldset className="grid">
+            <fieldset role="group">
+              <button
+                type="button"
+                className="secondary"
+                style={{ width: "auto", paddingInline: "0.5rem" }}
+                onClick={() =>
+                  dispatchState({
+                    percentage: Math.max(1, (percentage ?? 50) - 5),
+                  })
+                }
+              >
+                -5
+              </button>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={percentage ?? ""}
+                placeholder="%"
+                onFocus={clear}
+                onKeyDown={onEnterBlur}
+                onBlur={scrollToTop}
+                onChange={(e) =>
+                  dispatchState({ percentage: numbdfined(e.target.value) })
+                }
+              />
+              <button
+                type="button"
+                className="secondary"
+                style={{ width: "auto", paddingInline: "0.5rem" }}
+                onClick={() =>
+                  dispatchState({
+                    percentage: (percentage ?? 50) + 5,
+                  })
+                }
+              >
+                5+
+              </button>
+            </fieldset>
             <select
               value={percentageBase ?? ""}
               onChange={(e) =>
