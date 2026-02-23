@@ -13,6 +13,7 @@ export interface Movement {
 export interface MovementGroup {
   movements: Movement[];
   restSeconds?: number;
+  notes?: string | null;
 }
 
 export interface Workout {

@@ -10,6 +10,7 @@ interface ExportedMovement {
 interface ExportedGroup {
   movements: ExportedMovement[];
   restSeconds?: number;
+  notes?: string | null;
 }
 
 export interface ExportedWorkout {
@@ -74,6 +75,7 @@ export async function exportWorkout(
         sets: m.sets,
       })),
       ...(g.restSeconds != null ? { restSeconds: g.restSeconds } : {}),
+      ...(g.notes ? { notes: g.notes } : {}),
     })),
   };
 

@@ -97,6 +97,8 @@ export default function WorkoutViewer() {
               {group.restSeconds != null && ` — ${formatRest(group.restSeconds)} rest`}
             </summary>
 
+            {group.notes && <p><small>{group.notes}</small></p>}
+
             {movementInfos.map(({ movement, linkedMax, weightGroups }, mIdx) => (
               <div key={mIdx}>
                 {movementInfos.length > 1 && (

@@ -254,6 +254,17 @@ export default function WorkoutEditor() {
                 }}
               />
             </fieldset>
+            <fieldset>
+              <legend><small>Notes</small></legend>
+              <textarea
+                placeholder="Optional notes"
+                defaultValue={group.notes ?? ""}
+                onBlur={(e) => {
+                  const val = e.target.value.trim() || null;
+                  updateGroup(gIdx, { notes: val });
+                }}
+              />
+            </fieldset>
             <button
               type="button"
               className="secondary outline"
