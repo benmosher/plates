@@ -18,7 +18,7 @@ export interface ExportedWorkout {
   groups: ExportedGroup[];
 }
 
-// Packed (v2) format: array tuples instead of named-key objects.
+// Packed format: array tuples instead of named-key objects.
 // Eliminates JSON field-name overhead (~50% smaller before deflate).
 // [name, groups]  where group = [movements, restSeconds|null, notes|null]
 //                       movement = [name, maxName|null, sets]
@@ -133,12 +133,7 @@ export async function decodeWorkout(encoded: string): Promise<ExportedWorkout> {
   const bytes = fromBase64url(encoded);
   const decompressed = await decompress(bytes);
   const json = new TextDecoder().decode(decompressed);
-  const parsed: unknown = JSON.parse(json);
-  // v2: packed array format — [name, groups]
-  // v1 (legacy): named-key JSON object
-  return Array.isArray(parsed)
-    ? unpackWorkout(parsed as PackedWorkout)
-    : (parsed as ExportedWorkout);
+  return unpackWorkout(JSON.parse(json) as PackedWorkout);
 }
 
 export function buildImportUrl(encoded: string): string {
