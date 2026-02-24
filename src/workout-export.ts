@@ -18,6 +18,50 @@ export interface ExportedWorkout {
   groups: ExportedGroup[];
 }
 
+// Packed (v2) format: array tuples instead of named-key objects.
+// Eliminates JSON field-name overhead (~50% smaller before deflate).
+// [name, groups]  where group = [movements, restSeconds|null, notes|null]
+//                       movement = [name, maxName|null, sets]
+//                       set = [reps, count, weight]
+type PackedSet = [reps: number, count: number, weight: number];
+type PackedMovement = [name: string, maxName: string | null, sets: PackedSet[]];
+type PackedGroup = [
+  movements: PackedMovement[],
+  restSeconds: number | null,
+  notes: string | null,
+];
+type PackedWorkout = [name: string, groups: PackedGroup[]];
+
+function packWorkout(w: ExportedWorkout): PackedWorkout {
+  return [
+    w.name,
+    w.groups.map((g): PackedGroup => [
+      g.movements.map((m): PackedMovement => [
+        m.name,
+        m.maxName,
+        m.sets.map((s): PackedSet => [s.reps, s.count, s.weight]),
+      ]),
+      g.restSeconds ?? null,
+      g.notes ?? null,
+    ]),
+  ];
+}
+
+function unpackWorkout([name, groups]: PackedWorkout): ExportedWorkout {
+  return {
+    name,
+    groups: groups.map(([movements, restSeconds, notes]): ExportedGroup => ({
+      movements: movements.map(([movName, maxName, sets]): ExportedMovement => ({
+        name: movName,
+        maxName,
+        sets: sets.map(([reps, count, weight]): WorkoutSet => ({ reps, count, weight })),
+      })),
+      ...(restSeconds != null ? { restSeconds } : {}),
+      ...(notes ? { notes } : {}),
+    })),
+  };
+}
+
 function toBase64url(bytes: Uint8Array): string {
   const bin = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -79,7 +123,7 @@ export async function exportWorkout(
     })),
   };
 
-  const json = JSON.stringify(exported);
+  const json = JSON.stringify(packWorkout(exported));
   const encoded = new TextEncoder().encode(json);
   const compressed = await compress(encoded);
   return toBase64url(compressed);
@@ -89,7 +133,12 @@ export async function decodeWorkout(encoded: string): Promise<ExportedWorkout> {
   const bytes = fromBase64url(encoded);
   const decompressed = await decompress(bytes);
   const json = new TextDecoder().decode(decompressed);
-  return JSON.parse(json);
+  const parsed: unknown = JSON.parse(json);
+  // v2: packed array format — [name, groups]
+  // v1 (legacy): named-key JSON object
+  return Array.isArray(parsed)
+    ? unpackWorkout(parsed as PackedWorkout)
+    : (parsed as ExportedWorkout);
 }
 
 export function buildImportUrl(encoded: string): string {
