@@ -33,6 +33,9 @@ export interface Plate {
   diameterMm: number;
 
   color: string;
+
+  /** if true, this plate is avoided unless necessary to hit the target */
+  avoid?: boolean;
 }
 
 /** special variables for different bars */

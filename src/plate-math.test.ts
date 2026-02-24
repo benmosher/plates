@@ -41,6 +41,40 @@ describe("plates needed", () => {
       { weight: 5, count: 2 },
     ]);
   });
+
+  test("avoids plates marked with avoid when possible", () => {
+    const plates = [
+      { weight: 10, count: 3 },
+      { weight: 25, count: 1 },
+      { weight: 35, count: 1, avoid: true },
+      { weight: 45, count: 3 },
+    ];
+    // 295 on 45lb bar = 125 per side
+    // greedy would pick: 45+45+35 = 125
+    // with avoid: 45+45+25+10 = 125
+    expect(determinePlates(295, { weight: 45 }, plates)).toEqual([
+      { weight: 45, count: 2 },
+      { weight: 25, count: 1 },
+      { weight: 10, count: 1 },
+    ]);
+  });
+
+  test("uses avoided plates when necessary to hit target", () => {
+    const plates = [
+      { weight: 10, count: 1 },
+      { weight: 25, count: 1 },
+      { weight: 35, count: 1, avoid: true },
+      { weight: 45, count: 2 },
+    ];
+    // 315 on 45lb bar = 135 per side
+    // without 35: 45+45+25+10 = 125 (can't reach 135)
+    // with 35: 45+45+35+10 = 135
+    expect(determinePlates(315, { weight: 45 }, plates)).toEqual([
+      { weight: 45, count: 2 },
+      { weight: 35, count: 1, avoid: true },
+      { weight: 10, count: 1 },
+    ]);
+  });
 });
 
 function singles(weights: number[]) {
