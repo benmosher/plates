@@ -56,6 +56,7 @@ const Config = memo(function Config() {
               </button>
             </fieldset>
           ))}
+          <Avoid35sToggle plates={plates} putPlate={putPlate} />
         </form>
       </details>
       <details open>
@@ -187,5 +188,28 @@ function PlateLimitsMatrix({
         </table>
       </div>
     </details>
+  );
+}
+
+function Avoid35sToggle({
+  plates,
+  putPlate,
+}: {
+  plates: readonly Plate[];
+  putPlate: (plate: Plate) => void;
+}) {
+  const plate35 = plates.find((p) => p.weight === 35);
+  if (!plate35 || !plate35.count) return null;
+
+  return (
+    <label>
+      <input
+        type="checkbox"
+        role="switch"
+        checked={plate35.avoid ?? false}
+        onChange={() => putPlate({ ...plate35, avoid: !plate35.avoid })}
+      />
+      Avoid 35s
+    </label>
   );
 }

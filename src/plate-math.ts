@@ -1,17 +1,38 @@
+type Handle = {
+  weight: number;
+  plateThreshold?: number;
+  plateLimits?: { [plateWeight: number]: number };
+};
+
 export function determinePlates<
-  Plate extends { weight: number; count: number },
+  Plate extends { weight: number; count: number; avoid?: boolean },
 >(
   target: number | null | undefined,
-  handle: {
-    weight: number;
-    plateThreshold?: number;
-    plateLimits?: { [plateWeight: number]: number };
-  } | null,
+  handle: Handle | null,
   plates: readonly Plate[],
 ): readonly Plate[] {
   // don't bother
   if (!target || !handle || !plates.length) return [];
 
+  const hasAvoided = plates.some((p) => p.avoid);
+  if (hasAvoided) {
+    const nonAvoided = plates.filter((p) => !p.avoid);
+    const result = _greedyPlates(target, handle, nonAvoided);
+    const used = result.reduce((sum, p) => sum + p.weight * p.count, 0);
+    const targetPerSide = (target - handle.weight) / 2;
+    if (Math.abs(used - targetPerSide) < 0.001) {
+      return result;
+    }
+  }
+
+  return _greedyPlates(target, handle, plates);
+}
+
+function _greedyPlates<Plate extends { weight: number; count: number }>(
+  target: number,
+  handle: Handle,
+  plates: readonly Plate[],
+): readonly Plate[] {
   const platesUsed: Plate[] = [];
   let weightLeft = (target - handle.weight) / 2;
 
@@ -26,7 +47,7 @@ export function determinePlates<
       continue; // skip this plate if it exceeds the threshold or is disallowed by limits
 
     // use as many of this plate as possible
-    let countUsed = Math.min(
+    const countUsed = Math.min(
       plate.count,
       Math.floor(weightLeft / plate.weight),
       limit,
