@@ -287,6 +287,18 @@ function BarComputer({
               >
                 -5
               </button>
+              <button
+                type="button"
+                className="secondary"
+                style={{ width: "auto", paddingInline: "0.5rem" }}
+                onClick={() =>
+                  dispatchState({
+                    percentage: Math.max(1, (percentage ?? 50) - 1),
+                  })
+                }
+              >
+                -1
+              </button>
               <input
                 type="number"
                 min={1}
@@ -300,6 +312,18 @@ function BarComputer({
                   dispatchState({ percentage: numbdfined(e.target.value) })
                 }
               />
+              <button
+                type="button"
+                className="secondary"
+                style={{ width: "auto", paddingInline: "0.5rem" }}
+                onClick={() =>
+                  dispatchState({
+                    percentage: (percentage ?? 50) + 1,
+                  })
+                }
+              >
+                1+
+              </button>
               <button
                 type="button"
                 className="secondary"
