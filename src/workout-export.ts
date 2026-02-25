@@ -15,6 +15,7 @@ interface ExportedGroup {
 
 export interface ExportedWorkout {
   name: string;
+  folder?: string;
   groups: ExportedGroup[];
 }
 
@@ -30,26 +31,28 @@ type PackedGroup = [
   restSeconds: number | null,
   notes: string | null,
 ];
-type PackedWorkout = [name: string, groups: PackedGroup[]];
+type PackedWorkout = [name: string, groups: PackedGroup[]] | [name: string, groups: PackedGroup[], folder: string];
 
 function packWorkout(w: ExportedWorkout): PackedWorkout {
-  return [
-    w.name,
-    w.groups.map((g): PackedGroup => [
-      g.movements.map((m): PackedMovement => [
-        m.name,
-        m.maxName,
-        m.sets.map((s): PackedSet => [s.reps, s.count, s.weight]),
-      ]),
-      g.restSeconds ?? null,
-      g.notes ?? null,
+  const groups = w.groups.map((g): PackedGroup => [
+    g.movements.map((m): PackedMovement => [
+      m.name,
+      m.maxName,
+      m.sets.map((s): PackedSet => [s.reps, s.count, s.weight]),
     ]),
-  ];
+    g.restSeconds ?? null,
+    g.notes ?? null,
+  ]);
+  if (w.folder) return [w.name, groups, w.folder];
+  return [w.name, groups];
 }
 
-function unpackWorkout([name, groups]: PackedWorkout): ExportedWorkout {
+function unpackWorkout(packed: PackedWorkout): ExportedWorkout {
+  const [name, groups] = packed;
+  const folder = packed.length > 2 ? packed[2] : undefined;
   return {
     name,
+    ...(folder ? { folder } : {}),
     groups: groups.map(([movements, restSeconds, notes]): ExportedGroup => ({
       movements: movements.map(([movName, maxName, sets]): ExportedMovement => ({
         name: movName,
@@ -112,6 +115,7 @@ export async function exportWorkout(
 
   const exported: ExportedWorkout = {
     name: workout.name,
+    ...(workout.folder ? { folder: workout.folder } : {}),
     groups: workout.groups.map((g) => ({
       movements: g.movements.map((m) => ({
         name: m.name,

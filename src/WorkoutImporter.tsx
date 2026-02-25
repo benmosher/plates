@@ -10,12 +10,13 @@ const CREATE_PREFIX = "@@create:";
 export default function WorkoutImporter() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { maxes, putMax, putWorkout } = useMassStorage();
+  const { maxes, workouts, putMax, putWorkout } = useMassStorage();
 
   const encoded = searchParams.get("d");
   const [exported, setExported] = useState<ExportedWorkout | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
+  const [folder, setFolder] = useState<string>("");
 
   // map from maxName → selected value (max id, NONE, or CREATE_PREFIX+name)
   const [maxMapping, setMaxMapping] = useState<Map<string, string>>(new Map());
@@ -28,6 +29,7 @@ export default function WorkoutImporter() {
     decodeWorkout(encoded).then(
       (data) => {
         setExported(data);
+        setFolder(data.folder ?? "");
         // collect unique max names and auto-map
         const names = new Set<string>();
         for (const g of data.groups) {
@@ -91,8 +93,10 @@ export default function WorkoutImporter() {
       }
 
       // build workout
+      const trimmedFolder = folder.trim();
       const workout: Workout = {
         name: exported!.name,
+        ...(trimmedFolder ? { folder: trimmedFolder } : {}),
         groups: exported!.groups.map((g) => ({
           movements: g.movements.map((m) => ({
             name: m.name,
@@ -128,6 +132,22 @@ export default function WorkoutImporter() {
           </p>
         ))}
       </article>
+
+      <label>
+        Folder
+        <input
+          type="text"
+          placeholder="No folder"
+          value={folder}
+          list="import-folder-options"
+          onChange={(e) => setFolder(e.target.value)}
+        />
+        <datalist id="import-folder-options">
+          {[...new Set(workouts.map((w) => w.folder).filter((f): f is string => !!f))].map((f) => (
+            <option key={f} value={f} />
+          ))}
+        </datalist>
+      </label>
 
       {uniqueMaxNames.length > 0 && (
         <article>

@@ -19,5 +19,6 @@ export interface MovementGroup {
 export interface Workout {
   id?: number;
   name: string;
+  folder?: string;
   groups: MovementGroup[];
 }

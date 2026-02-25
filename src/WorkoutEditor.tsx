@@ -137,6 +137,21 @@ export default function WorkoutEditor() {
         defaultValue={workout.name}
         onBlur={(e) => save({ name: e.target.value })}
       />
+      <input
+        type="text"
+        placeholder="Folder (optional)"
+        defaultValue={workout.folder ?? ""}
+        list="folder-options"
+        onBlur={(e) => {
+          const val = e.target.value.trim() || undefined;
+          save({ folder: val });
+        }}
+      />
+      <datalist id="folder-options">
+        {[...new Set(workouts.map((w) => w.folder).filter((f): f is string => !!f))].map((f) => (
+          <option key={f} value={f} />
+        ))}
+      </datalist>
 
       {workout.groups.map((group, gIdx) => (
         <article key={gIdx}>
