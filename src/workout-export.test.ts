@@ -131,6 +131,23 @@ describe("exportWorkout edge cases", () => {
     expect(decoded).toEqual({ name: "", groups: [] });
   });
 
+  test("group notes round-trip", async () => {
+    const withNotes: Workout = {
+      name: "Notes Day",
+      groups: [
+        {
+          movements: [
+            { name: "Squat", maxId: null, sets: [{ reps: 5, count: 3, weight: 80 }] },
+          ],
+          notes: "Focus on depth",
+        },
+      ],
+    };
+    const encoded = await exportWorkout(withNotes, []);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.groups[0].notes).toBe("Focus on depth");
+  });
+
   test("superset (multiple movements per group) round-trips", async () => {
     const superset: Workout = {
       name: "Superset Day",

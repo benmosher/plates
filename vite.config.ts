@@ -8,4 +8,16 @@ export default defineConfig({
     manifest: true,
     outDir: "build", // CRA's default build output
   },
+  test: {
+    coverage: {
+      provider: "v8",
+      include: ["src/plate-math.ts", "src/workout-export.ts", "src/utils.ts"],
+      thresholds: {
+        lines: 100,
+        functions: 100,
+        branches: 100,
+        statements: 100,
+      },
+    },
+  },
 });

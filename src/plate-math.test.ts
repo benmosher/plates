@@ -1,6 +1,7 @@
 import { expect, describe, test } from "vitest";
 
 import {
+  chooseBar,
   closestTarget,
   determinePlateCombos,
   determinePlates,
@@ -57,6 +58,30 @@ describe("plates needed", () => {
       { weight: 25, count: 1 },
       { weight: 10, count: 1 },
     ]);
+  });
+
+  test("returns empty for null target", () => {
+    expect(determinePlates(null, { weight: 45 }, singles([10]))).toEqual([]);
+  });
+
+  test("returns empty for null handle", () => {
+    expect(determinePlates(100, null, singles([10]))).toEqual([]);
+  });
+
+  test("returns empty for empty plates", () => {
+    expect(determinePlates(100, { weight: 45 }, [])).toEqual([]);
+  });
+
+  test("respects plateThreshold on handle", () => {
+    const plates = [
+      { weight: 5, count: 4 },
+      { weight: 10, count: 4 },
+    ];
+    // plateThreshold=5 means 10lb plates are skipped
+    // target=50, handle=20 → 15 per side → only 5lb plates → 3x5=15
+    expect(
+      determinePlates(50, { weight: 20, plateThreshold: 5 }, plates),
+    ).toEqual([{ weight: 5, count: 3 }]);
   });
 
   test("uses avoided plates when necessary to hit target", () => {
@@ -137,6 +162,102 @@ describe("weight space", () => {
       determineWeightSpace([{ weight: 45 }], plates),
     ).toEqual([45, 65, 85]);
   });
+
+  test("returns empty for no bars", () => {
+    expect(determineWeightSpace([], singles([10]))).toEqual([]);
+  });
+
+  test("plateThreshold filters heavy plates", () => {
+    // bar with plateThreshold=5 should exclude 10lb plates
+    const plates = singles([5, 10]);
+    expect(
+      determineWeightSpace([{ weight: 20, plateThreshold: 5 }], plates),
+    ).toEqual([20, 30]);
+  });
+
+  test("maxLoad caps achievable weights", () => {
+    const plates = [{ weight: 10, count: 3 }];
+    // bar=20, combos=0,20,40,60 → totals=20,40,60,80
+    // maxLoad=50 caps at 40
+    expect(
+      determineWeightSpace([{ weight: 20, maxLoad: 50 }], plates),
+    ).toEqual([20, 40]);
+  });
+
+  test("multiple bars merge interleaved weight spaces", () => {
+    // bar1=10 with plates [5] → [10, 20]
+    // bar2=15 with plates [5] → [15, 25]
+    // merged → [10, 15, 20, 25]
+    const plates = singles([5]);
+    expect(
+      determineWeightSpace(
+        [{ weight: 10 }, { weight: 15 }],
+        plates,
+      ),
+    ).toEqual([10, 15, 20, 25]);
+  });
+
+  test("merge handles first array having larger tail", () => {
+    // bar1=20 with [10] → [20, 40]
+    // bar2=5 with [10] → [5, 25]
+    // _merge([20,40], [5,25]):
+    //   5<20→push 5, 20<25→push 20, 25<40→push 25, a-tail→push 40
+    const plates = singles([10]);
+    expect(
+      determineWeightSpace(
+        [{ weight: 20 }, { weight: 5 }],
+        plates,
+      ),
+    ).toEqual([5, 20, 25, 40]);
+  });
+});
+
+describe("chooseBar", () => {
+  const bars = [
+    { type: "barbell", weight: 45 },
+    { type: "barbell", weight: 35 },
+    { type: "dumbbell", weight: 15 },
+    { type: "dumbbell", weight: 10 },
+  ];
+
+  test("returns null for null target", () => {
+    expect(chooseBar(bars, null)).toBeNull();
+  });
+
+  test("returns null for undefined target", () => {
+    expect(chooseBar(bars, undefined)).toBeNull();
+  });
+
+  test("returns null for empty bars", () => {
+    expect(chooseBar([], 100)).toBeNull();
+  });
+
+  test("returns heaviest bar under target", () => {
+    expect(chooseBar(bars, 100)).toEqual({ type: "barbell", weight: 45 });
+  });
+
+  test("filters by type", () => {
+    expect(chooseBar(bars, 100, "dumbbell")).toEqual({
+      type: "dumbbell",
+      weight: 15,
+    });
+  });
+
+  test("returns exact weight match", () => {
+    expect(chooseBar(bars, 100, null, 35)).toEqual({
+      type: "barbell",
+      weight: 35,
+    });
+  });
+
+  test("skips bars heavier than target", () => {
+    // target=20: barbell 45 and 35 are too heavy, dumbbell 15 fits
+    expect(chooseBar(bars, 20)).toEqual({ type: "dumbbell", weight: 15 });
+  });
+
+  test("returns null when all bars exceed target", () => {
+    expect(chooseBar(bars, 5)).toBeNull();
+  });
 });
 
 describe("choose closest weight", () => {
@@ -160,5 +281,9 @@ describe("choose closest weight", () => {
     test(`closest weight to ${input} is ${expected}`, () => {
       expect(closestTarget(input as number, possibleWeights)).toEqual(expected);
     });
+  });
+
+  test("returns undefined for empty weight list", () => {
+    expect(closestTarget(100, [])).toBeUndefined();
   });
 });
