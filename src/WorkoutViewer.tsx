@@ -1,6 +1,7 @@
 import { useParams, Link } from "react-router";
 import { useMassStorage } from "./plate-db";
 import { WorkoutSet } from "./workout-types";
+import ShareDialog from "./ShareDialog";
 
 function formatRest(seconds: number): string {
   if (seconds % 60 === 0) return `${seconds / 60}min`;
@@ -31,9 +32,12 @@ export default function WorkoutViewer() {
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h3>{workout.name || "(untitled)"}</h3>
-        <Link to={`/workouts/${id}/edit`} role="button" className="secondary outline" style={{ width: "auto" }}>
-          Edit
-        </Link>
+        <span style={{ display: "inline-flex", gap: "0.5rem" }}>
+          <ShareDialog workout={workout} buttonStyle={{ width: "auto" }} />
+          <Link to={`/workouts/${id}/edit`} role="button" className="secondary outline" style={{ width: "auto" }}>
+            Edit
+          </Link>
+        </span>
       </div>
 
       {workout.groups.map((group, gIdx) => {
