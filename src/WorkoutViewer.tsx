@@ -30,15 +30,7 @@ export default function WorkoutViewer() {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3>{workout.name || "(untitled)"}</h3>
-        <span style={{ display: "inline-flex", gap: "0.5rem" }}>
-          <ShareDialog workout={workout} buttonStyle={{ width: "auto" }} />
-          <Link to={`/workouts/${id}/edit`} role="button" className="secondary outline" style={{ width: "auto" }}>
-            Edit
-          </Link>
-        </span>
-      </div>
+      <h3>{workout.name || "(untitled)"}</h3>
 
       {workout.groups.map((group, gIdx) => {
         const movementInfos = group.movements.map((movement) => {
@@ -97,6 +89,13 @@ export default function WorkoutViewer() {
           </article>
         );
       })}
+
+      <fieldset className="grid">
+        <ShareDialog workout={workout} />
+        <Link to={`/workouts/${id}/edit`} role="button" className="secondary outline">
+          Edit
+        </Link>
+      </fieldset>
     </>
   );
 }
