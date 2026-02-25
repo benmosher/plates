@@ -109,7 +109,7 @@ export default function WorkoutImporter() {
       };
 
       const id = await putWorkout(workout);
-      navigate(`/workouts/${id}/edit`);
+      navigate(`/workouts/${id}/view`);
     } catch {
       setError("Failed to import workout.");
       setImporting(false);
