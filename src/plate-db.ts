@@ -11,7 +11,7 @@ function migrateWorkout(raw: any): Workout {
       ? { movements: [{ name: item.name, maxId: item.maxId, sets: migrateSets(item.sets) }], restSeconds: item.restSeconds }
       : { ...item, movements: item.movements.map((m: any) => ({ ...m, sets: migrateSets(m.sets) })) },
   );
-  return { id: raw.id, name: raw.name, groups };
+  return { id: raw.id, name: raw.name, ...(raw.folder ? { folder: raw.folder } : {}), groups };
 }
 
 /** Migrate weight from { type, value } object to plain number. */

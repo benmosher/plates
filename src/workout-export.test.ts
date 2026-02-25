@@ -169,6 +169,30 @@ describe("exportWorkout edge cases", () => {
   });
 });
 
+describe("folder round-trip", () => {
+  test("preserves folder when present", async () => {
+    const withFolder: Workout = {
+      name: "Leg Day",
+      folder: "Week 1",
+      groups: [
+        {
+          movements: [{ name: "Squat", maxId: null, sets: [{ reps: 5, count: 3, weight: 135 }] }],
+        },
+      ],
+    };
+    const encoded = await exportWorkout(withFolder, []);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.folder).toBe("Week 1");
+  });
+
+  test("omits folder when absent", async () => {
+    const noFolder: Workout = { name: "Quick", groups: [] };
+    const encoded = await exportWorkout(noFolder, []);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded).not.toHaveProperty("folder");
+  });
+});
+
 describe("decodeWorkout error handling", () => {
   test("rejects invalid base64", async () => {
     await expect(decodeWorkout("!!!invalid!!!")).rejects.toThrow();

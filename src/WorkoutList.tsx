@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { useMassStorage } from "./plate-db";
 import { Workout } from "./workout-types";
 import { exportWorkout, buildImportUrl } from "./workout-export";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 const btnStyle: React.CSSProperties = { width: "auto", padding: "0.25rem 0.5rem", fontSize: "0.75rem", margin: 0 };
@@ -58,9 +58,56 @@ function ShareDialog({ workout }: { workout: Workout }) {
   );
 }
 
+function WorkoutRow({ workout }: { workout: Workout }) {
+  return (
+    <tr>
+      <td>
+        <Link to={`/workouts/${workout.id}/view`}>
+          {workout.name || "(untitled)"}
+        </Link>
+      </td>
+      <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
+        <span style={{ display: "inline-flex", gap: "0.25rem" }}>
+          <ShareDialog workout={workout} />
+          <Link to={`/workouts/${workout.id}/edit`} role="button" className="secondary outline" style={btnStyle}>
+            Edit
+          </Link>
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+function WorkoutTable({ workouts }: { workouts: readonly Workout[] }) {
+  return (
+    <table>
+      <tbody>
+        {workouts.map((w) => <WorkoutRow key={w.id} workout={w} />)}
+      </tbody>
+    </table>
+  );
+}
+
 export default function WorkoutList() {
   const { workouts, putWorkout } = useMassStorage();
   const navigate = useNavigate();
+
+  const { unfiled, folders } = useMemo(() => {
+    const unfiled: Workout[] = [];
+    const folderMap = new Map<string, Workout[]>();
+    for (const w of workouts) {
+      if (w.folder) {
+        let list = folderMap.get(w.folder);
+        if (!list) { list = []; folderMap.set(w.folder, list); }
+        list.push(w);
+      } else {
+        unfiled.push(w);
+      }
+    }
+    // sort folder names alphabetically
+    const folders = [...folderMap.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    return { unfiled, folders };
+  }, [workouts]);
 
   return (
     <>
@@ -68,27 +115,20 @@ export default function WorkoutList() {
       {workouts.length === 0 ? (
         <p>No saved workouts yet.</p>
       ) : (
-        <table>
-          <tbody>
-            {workouts.map((w) => (
-              <tr key={w.id}>
-                <td>
-                  <Link to={`/workouts/${w.id}/view`}>
-                    {w.name || "(untitled)"}
-                  </Link>
-                </td>
-                <td style={{ whiteSpace: "nowrap", textAlign: "right" }}>
-                  <span style={{ display: "inline-flex", gap: "0.25rem" }}>
-                    <ShareDialog workout={w} />
-                    <Link to={`/workouts/${w.id}/edit`} role="button" className="secondary outline" style={btnStyle}>
-                      Edit
-                    </Link>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          {folders.map(([folder, items]) => (
+            <details key={folder} open>
+              <summary><strong>{folder}</strong></summary>
+              <WorkoutTable workouts={items} />
+            </details>
+          ))}
+          {unfiled.length > 0 && (
+            <details open>
+              <summary><strong>Unfiled</strong></summary>
+              <WorkoutTable workouts={unfiled} />
+            </details>
+          )}
+        </>
       )}
       <button
         type="button"
