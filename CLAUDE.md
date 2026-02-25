@@ -11,6 +11,7 @@ Plate Math — a weight plate calculator for lifters. Determines which plates to
 - `pnpm install` — install dependencies
 - `pnpm start` — dev server (Vite, http://localhost:5173)
 - `pnpm test` — run tests (Vitest, single run)
+- `npx vitest run --coverage` — run tests with coverage report
 - `pnpm build` — production build to `./build`
 
 CI runs `pnpm test` then `pnpm build --base="/plates/"` on push to main.
@@ -52,7 +53,7 @@ Workout data shape is defined in `workout-types.ts`: `Workout` → `MovementGrou
 - `chooseBar` — selects heaviest bar ≤ target, filtered by type
 - `closestTarget` — binary search for nearest valid weight
 
-Tests live in `plate-math.test.ts` (math functions) and `workout-export.test.ts` (workout export logic).
+Tests live in `plate-math.test.ts` (math functions), `workout-export.test.ts` (workout export logic), and `utils.test.ts` (utility functions). Coverage is enforced at 100% (statements, branches, functions, lines) for `plate-math.ts`, `workout-export.ts`, and `utils.ts` via `@vitest/coverage-v8`. When modifying these files or adding new pure-logic modules, maintain 100% coverage and add the new file to the `include` list in `vite.config.ts`.
 
 ### UI Patterns
 
