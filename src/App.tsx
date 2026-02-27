@@ -7,9 +7,9 @@ import {
 import { useDeferredValue, useMemo } from "react";
 import { useMassStorage, Bar, Max, Plate } from "./plate-db";
 import MassConfig from "./MassConfig";
-import { useAutoRepeat } from "./useAutoRepeat";
 import { useWeightSet } from "./useWeightSet";
 import { numbdfined } from "./utils";
+import { NumberInput } from "./NumberInput";
 import { HiddenDeleteFieldset } from "./HiddenDeleteFieldset";
 import BarView from "./BarView";
 import { Link, Route, Routes } from "react-router";
@@ -139,19 +139,6 @@ function BarComputer({
   const weightSet = useWeightSet();
   const inWeightSet = target != null && weightSet.weights.includes(target);
 
-  const nudgeDown = useAutoRepeat(() => {
-    const nudge = activeBar?.sliderMinStep;
-    if (nudge == null) return;
-    const prev = Math.ceil((target ?? 0) / nudge) * nudge - nudge;
-    if (weightMin != null && prev >= weightMin) dispatchState({ target: prev });
-  });
-  const nudgeUp = useAutoRepeat(() => {
-    const nudge = activeBar?.sliderMinStep;
-    if (nudge == null) return;
-    const next = Math.floor((target ?? 0) / nudge) * nudge + nudge;
-    if (weightMax != null && next <= weightMax) dispatchState({ target: next });
-  });
-
   return (
     <>
       <select
@@ -204,48 +191,20 @@ function BarComputer({
             ))}
           </datalist>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "start" }}>
-            <fieldset role="group" style={{ flex: 1 }}>
-              {activeBar?.sliderMinStep != null && (
-                <>
-                  <button
-                    type="button"
-                    className="secondary"
-                    disabled={activeBar?.sliderMinStep == null}
-                    style={{ width: "auto", paddingInline: "0.5rem" }}
-                    {...nudgeDown}
-                  >
-                    -{activeBar.sliderMinStep}
-                  </button>
-                </>
-              )}
-              <input
-                id="target-number"
-                type="number"
-                placeholder="work weight"
-                value={target ?? ""}
-                min={weightMin}
-                max={weightMax}
-                step={weightStep}
-                onFocus={clear}
-                onKeyDown={onEnterBlur}
-                onBlur={scrollToTop}
-                onChange={(e) =>
-                  dispatchState({ target: numbdfined(e.target.value) })
-                }
-                aria-invalid={!validTarget}
-              />
-              {activeBar?.sliderMinStep != null && (
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={activeBar?.sliderMinStep == null}
-                  style={{ width: "auto", paddingInline: "0.5rem" }}
-                  {...nudgeUp}
-                >
-                  {activeBar.sliderMinStep}+
-                </button>
-              )}
-            </fieldset>
+            <NumberInput
+              value={target}
+              onChange={(v) => dispatchState({ target: v })}
+              step={activeBar?.sliderMinStep}
+              min={weightMin}
+              max={weightMax}
+              style={{ flex: 1 }}
+              id="target-number"
+              placeholder="work weight"
+              onFocus={clear}
+              onKeyDown={onEnterBlur}
+              onBlur={scrollToTop}
+              aria-invalid={!validTarget}
+            />
             {target != null && (
               <button
                 type="button"
@@ -447,15 +406,11 @@ function MaxEditor({
         defaultValue={max.label ?? ""}
         onChange={(e) => putMax?.({ ...max, label: e.target.value })}
       />
-      <input
-        defaultValue={max.weight ?? ""}
-        type="number"
-        onChange={(e) =>
-          putMax?.({
-            ...max,
-            weight: numbdfined(e.target.value) ?? null,
-          })
-        }
+      <NumberInput
+        value={max.weight}
+        onChange={(v) => putMax?.({ ...max, weight: v ?? null })}
+        step={5}
+        min={0}
       />
     </HiddenDeleteFieldset>
   );
