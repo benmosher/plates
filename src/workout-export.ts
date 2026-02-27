@@ -1,5 +1,5 @@
 import { Workout, WorkoutSet } from "./workout-types";
-import { Max } from "./plate-db";
+import { Bar, Max } from "./plate-db";
 
 interface ExportedMovement {
   name: string;
@@ -114,22 +114,33 @@ async function decompress(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(buffer);
 }
 
+function resolveBarType(bar: { type: string } | { id: number } | undefined, barById: Map<number, Bar>): string | undefined {
+  if (!bar) return undefined;
+  if ("type" in bar) return bar.type;
+  return barById.get(bar.id)?.type;
+}
+
 export async function exportWorkout(
   workout: Workout,
   maxes: readonly Max[],
+  bars: readonly Bar[],
 ): Promise<string> {
   const maxById = new Map(maxes.map((m) => [m.id!, m]));
+  const barById = new Map(bars.map((b) => [b.idx, b]));
 
   const exported: ExportedWorkout = {
     name: workout.name,
     ...(workout.folder ? { folder: workout.folder } : {}),
     groups: workout.groups.map((g) => ({
-      movements: g.movements.map((m) => ({
-        name: m.name,
-        maxName: m.maxId != null ? (maxById.get(m.maxId)?.label ?? null) : null,
-        ...(m.barType ? { barType: m.barType } : {}),
-        sets: m.sets,
-      })),
+      movements: g.movements.map((m) => {
+        const barType = resolveBarType(m.bar, barById);
+        return {
+          name: m.name,
+          maxName: m.maxId != null ? (maxById.get(m.maxId)?.label ?? null) : null,
+          ...(barType ? { barType } : {}),
+          sets: m.sets,
+        };
+      }),
       ...(g.restSeconds != null ? { restSeconds: g.restSeconds } : {}),
       ...(g.notes ? { notes: g.notes } : {}),
     })),

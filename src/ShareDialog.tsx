@@ -5,13 +5,13 @@ import { Workout } from "./workout-types";
 import { QRCodeSVG } from "qrcode.react";
 
 export default function ShareDialog({ workout, buttonStyle }: { workout: Workout; buttonStyle?: React.CSSProperties }) {
-  const { maxes } = useMassStorage();
+  const { maxes, bars } = useMassStorage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const canUseWebShare = typeof (navigator as { share?: unknown }).share === 'function';
 
   async function handleShare() {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     setShareUrl(buildImportUrl(encoded));
     dialogRef.current?.showModal();
   }

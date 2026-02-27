@@ -194,30 +194,25 @@ export default function WorkoutEditor() {
               </select>
               <select
                 value={
-                  movement.barId != null
-                    ? `bar:${movement.barId}`
-                    : movement.barType
-                      ? `type:${movement.barType}`
-                      : ""
+                  movement.bar
+                    ? "id" in movement.bar
+                      ? `bar:${movement.bar.id}`
+                      : `type:${movement.bar.type}`
+                    : ""
                 }
                 onChange={(e) => {
                   const v = e.target.value;
                   if (v.startsWith("bar:")) {
-                    const barIdx = Number(v.slice(4));
-                    const bar = bars.find((b) => b.idx === barIdx);
                     updateMovement(gIdx, mIdx, {
-                      barType: bar?.type,
-                      barId: barIdx,
+                      bar: { id: Number(v.slice(4)) },
                     });
                   } else if (v.startsWith("type:")) {
                     updateMovement(gIdx, mIdx, {
-                      barType: v.slice(5),
-                      barId: undefined,
+                      bar: { type: v.slice(5) },
                     });
                   } else {
                     updateMovement(gIdx, mIdx, {
-                      barType: undefined,
-                      barId: undefined,
+                      bar: undefined,
                     });
                   }
                 }}

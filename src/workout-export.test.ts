@@ -1,11 +1,16 @@
 import { expect, describe, test, vi } from "vitest";
 import { exportWorkout, decodeWorkout, buildImportUrl } from "./workout-export";
 import { Workout } from "./workout-types";
-import { Max } from "./plate-db";
+import { Bar, Max } from "./plate-db";
 
 const maxes: Max[] = [
   { id: 1, label: "Squat", weight: 355 },
   { id: 2, label: "Bench", weight: 230 },
+];
+
+const bars: Bar[] = [
+  { idx: 0, name: "Olympic barbell", type: "barbell", weight: 45, barLength: 500, handleWidth: 200 },
+  { idx: 1, name: "Olympic dumbbell", type: "dumbbell", weight: 12.5, barLength: 260, handleWidth: 80 },
 ];
 
 const workout: Workout = {
@@ -51,26 +56,26 @@ const workout: Workout = {
 
 describe("exportWorkout + decodeWorkout round-trip", () => {
   test("preserves workout name", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.name).toBe("Test Day");
   });
 
   test("replaces maxId with maxName", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].movements[0].maxName).toBe("Squat");
     expect(decoded.groups[1].movements[0].maxName).toBe("Bench");
   });
 
   test("null maxId becomes null maxName", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[2].movements[0].maxName).toBeNull();
   });
 
   test("preserves set data", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     const sets = decoded.groups[0].movements[0].sets;
     expect(sets).toEqual([
@@ -79,19 +84,19 @@ describe("exportWorkout + decodeWorkout round-trip", () => {
   });
 
   test("preserves restSeconds when present", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].restSeconds).toBe(180);
   });
 
   test("omits restSeconds when absent", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[1].restSeconds).toBeUndefined();
   });
 
   test("preserves movement names", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups.map((g) => g.movements[0].name)).toEqual([
       "Back Squat",
@@ -101,7 +106,7 @@ describe("exportWorkout + decodeWorkout round-trip", () => {
   });
 
   test("strips workout id from export", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded).not.toHaveProperty("id");
   });
@@ -119,14 +124,14 @@ describe("exportWorkout edge cases", () => {
         },
       ],
     };
-    const encoded = await exportWorkout(workoutWithMissing, maxes);
+    const encoded = await exportWorkout(workoutWithMissing, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].movements[0].maxName).toBeNull();
   });
 
   test("empty workout round-trips", async () => {
     const empty: Workout = { name: "", groups: [] };
-    const encoded = await exportWorkout(empty, []);
+    const encoded = await exportWorkout(empty, [], []);
     const decoded = await decodeWorkout(encoded);
     expect(decoded).toEqual({ name: "", groups: [] });
   });
@@ -143,7 +148,7 @@ describe("exportWorkout edge cases", () => {
         },
       ],
     };
-    const encoded = await exportWorkout(withNotes, []);
+    const encoded = await exportWorkout(withNotes, [], []);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].notes).toBe("Focus on depth");
   });
@@ -161,7 +166,7 @@ describe("exportWorkout edge cases", () => {
         },
       ],
     };
-    const encoded = await exportWorkout(superset, maxes);
+    const encoded = await exportWorkout(superset, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].movements).toHaveLength(2);
     expect(decoded.groups[0].movements[0].maxName).toBe("Squat");
@@ -170,60 +175,92 @@ describe("exportWorkout edge cases", () => {
 });
 
 describe("barType round-trip", () => {
-  test("preserves barType when present", async () => {
+  test("preserves barType from bar type selection", async () => {
     const withBarType: Workout = {
       name: "Bar Day",
       groups: [
         {
           movements: [
-            { name: "Back Squat", maxId: 1, barType: "barbell", sets: [{ reps: 5, count: 3, weight: 80 }] },
+            { name: "Back Squat", maxId: 1, bar: { type: "barbell" }, sets: [{ reps: 5, count: 3, weight: 80 }] },
           ],
         },
       ],
     };
-    const encoded = await exportWorkout(withBarType, maxes);
+    const encoded = await exportWorkout(withBarType, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].movements[0].barType).toBe("barbell");
   });
 
-  test("omits barType when absent", async () => {
-    const encoded = await exportWorkout(workout, maxes);
+  test("resolves bar id to bar type on export", async () => {
+    const withBarId: Workout = {
+      name: "Specific Bar Day",
+      groups: [
+        {
+          movements: [
+            { name: "Squat", maxId: null, bar: { id: 0 }, sets: [{ reps: 5, count: 1, weight: 135 }] },
+          ],
+        },
+      ],
+    };
+    const encoded = await exportWorkout(withBarId, [], bars);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.groups[0].movements[0].barType).toBe("barbell");
+  });
+
+  test("omits barType when bar absent", async () => {
+    const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].movements[0]).not.toHaveProperty("barType");
   });
 
-  test("mixed barType and no-barType movements round-trip", async () => {
+  test("mixed bar and no-bar movements round-trip", async () => {
     const mixed: Workout = {
       name: "Mixed",
       groups: [
         {
           movements: [
-            { name: "Squat", maxId: null, barType: "barbell", sets: [{ reps: 5, count: 1, weight: 135 }] },
+            { name: "Squat", maxId: null, bar: { type: "barbell" }, sets: [{ reps: 5, count: 1, weight: 135 }] },
             { name: "Curls", maxId: null, sets: [{ reps: 12, count: 3, weight: 30 }] },
           ],
         },
       ],
     };
-    const encoded = await exportWorkout(mixed, []);
+    const encoded = await exportWorkout(mixed, [], bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].movements[0].barType).toBe("barbell");
     expect(decoded.groups[0].movements[1]).not.toHaveProperty("barType");
   });
 
   test("dumbbell barType round-trips", async () => {
-    const db: Workout = {
+    const dbWorkout: Workout = {
       name: "DB Day",
       groups: [
         {
           movements: [
-            { name: "DB Press", maxId: null, barType: "dumbbell", sets: [{ reps: 10, count: 3, weight: 50 }] },
+            { name: "DB Press", maxId: null, bar: { type: "dumbbell" }, sets: [{ reps: 10, count: 3, weight: 50 }] },
           ],
         },
       ],
     };
-    const encoded = await exportWorkout(db, []);
+    const encoded = await exportWorkout(dbWorkout, [], bars);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.groups[0].movements[0].barType).toBe("dumbbell");
+  });
+
+  test("unknown bar id omits barType", async () => {
+    const withUnknown: Workout = {
+      name: "Unknown Bar",
+      groups: [
+        {
+          movements: [
+            { name: "Mystery", maxId: null, bar: { id: 999 }, sets: [] },
+          ],
+        },
+      ],
+    };
+    const encoded = await exportWorkout(withUnknown, [], bars);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.groups[0].movements[0]).not.toHaveProperty("barType");
   });
 });
 
@@ -238,14 +275,14 @@ describe("folder round-trip", () => {
         },
       ],
     };
-    const encoded = await exportWorkout(withFolder, []);
+    const encoded = await exportWorkout(withFolder, [], []);
     const decoded = await decodeWorkout(encoded);
     expect(decoded.folder).toBe("Week 1");
   });
 
   test("omits folder when absent", async () => {
     const noFolder: Workout = { name: "Quick", groups: [] };
-    const encoded = await exportWorkout(noFolder, []);
+    const encoded = await exportWorkout(noFolder, [], []);
     const decoded = await decodeWorkout(encoded);
     expect(decoded).not.toHaveProperty("folder");
   });

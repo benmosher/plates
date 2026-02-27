@@ -114,16 +114,15 @@ export default function WorkoutImporter() {
       }
 
       // resolve bar type mappings
-      const resolvedBarInfo = new Map<string, { barType?: string; barId?: number }>();
+      type BarValue = { type: string } | { id: number } | undefined;
+      const resolvedBars = new Map<string, BarValue>();
       for (const [bt, value] of barTypeMapping) {
         if (value === NONE) {
-          resolvedBarInfo.set(bt, {});
+          resolvedBars.set(bt, undefined);
         } else if (value.startsWith(BAR_ID_PREFIX)) {
-          const barIdx = Number(value.slice(BAR_ID_PREFIX.length));
-          const bar = bars.find((b) => b.idx === barIdx);
-          resolvedBarInfo.set(bt, { barType: bar?.type ?? bt, barId: barIdx });
+          resolvedBars.set(bt, { id: Number(value.slice(BAR_ID_PREFIX.length)) });
         } else if (value.startsWith(BAR_TYPE_PREFIX)) {
-          resolvedBarInfo.set(bt, { barType: value.slice(BAR_TYPE_PREFIX.length) });
+          resolvedBars.set(bt, { type: value.slice(BAR_TYPE_PREFIX.length) });
         }
       }
 
@@ -134,12 +133,11 @@ export default function WorkoutImporter() {
         ...(trimmedFolder ? { folder: trimmedFolder } : {}),
         groups: exported!.groups.map((g) => ({
           movements: g.movements.map((m) => {
-            const barInfo = m.barType ? (resolvedBarInfo.get(m.barType) ?? {}) : {};
+            const bar = m.barType ? resolvedBars.get(m.barType) : undefined;
             return {
               name: m.name,
               maxId: m.maxName ? (resolvedMaxIds.get(m.maxName) ?? null) : null,
-              ...(barInfo.barType ? { barType: barInfo.barType } : {}),
-              ...(barInfo.barId != null ? { barId: barInfo.barId } : {}),
+              ...(bar ? { bar } : {}),
               sets: m.sets,
             };
           }),

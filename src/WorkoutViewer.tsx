@@ -20,14 +20,17 @@ function buildSetHash(set: WorkoutSet, maxWeight: number | null, movement: Movem
   }
 
   // include bar info from movement
-  if (movement.barId != null) {
-    const bar = bars.find((b) => b.idx === movement.barId);
-    if (bar) {
-      params.set("bar", bar.type);
-      params.set("barWeight", String(bar.weight));
+  if (movement.bar) {
+    const mb = movement.bar;
+    if ("id" in mb) {
+      const bar = bars.find((b) => b.idx === mb.id);
+      if (bar) {
+        params.set("bar", bar.type);
+        params.set("barWeight", String(bar.weight));
+      }
+    } else {
+      params.set("bar", mb.type);
     }
-  } else if (movement.barType) {
-    params.set("bar", movement.barType);
   }
 
   return `/#${params.toString()}`;
