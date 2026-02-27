@@ -7,6 +7,10 @@ export interface WorkoutSet {
 export interface Movement {
   name: string;
   maxId: number | null;
+  /** bar type filter (e.g. "barbell", "dumbbell") */
+  barType?: string;
+  /** specific bar index (from Bar.idx) */
+  barId?: number;
   sets: WorkoutSet[];
 }
 

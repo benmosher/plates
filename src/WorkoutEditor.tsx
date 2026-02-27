@@ -42,7 +42,7 @@ function formatRestSeconds(seconds: number): string {
 
 export default function WorkoutEditor() {
   const { id } = useParams<{ id: string }>();
-  const { workouts, putWorkout, deleteWorkout, maxes } = useMassStorage();
+  const { workouts, putWorkout, deleteWorkout, maxes, bars } = useMassStorage();
   const navigate = useNavigate();
   const workout = workouts.find((w) => w.id === Number(id));
 
@@ -175,6 +175,7 @@ export default function WorkoutEditor() {
                   &times;
                 </button>
               </div>
+              <fieldset className="grid">
               <select
                 value={movement.maxId ?? ""}
                 onChange={(e) => {
@@ -191,6 +192,51 @@ export default function WorkoutEditor() {
                     </option>
                   ))}
               </select>
+              <select
+                value={
+                  movement.barId != null
+                    ? `bar:${movement.barId}`
+                    : movement.barType
+                      ? `type:${movement.barType}`
+                      : ""
+                }
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v.startsWith("bar:")) {
+                    const barIdx = Number(v.slice(4));
+                    const bar = bars.find((b) => b.idx === barIdx);
+                    updateMovement(gIdx, mIdx, {
+                      barType: bar?.type,
+                      barId: barIdx,
+                    });
+                  } else if (v.startsWith("type:")) {
+                    updateMovement(gIdx, mIdx, {
+                      barType: v.slice(5),
+                      barId: undefined,
+                    });
+                  } else {
+                    updateMovement(gIdx, mIdx, {
+                      barType: undefined,
+                      barId: undefined,
+                    });
+                  }
+                }}
+              >
+                <option value="">No bar</option>
+                {[...new Set(bars.map((b) => b.type))].map((type) => (
+                  <optgroup key={type} label={type}>
+                    <option value={`type:${type}`}>{type} (any)</option>
+                    {bars
+                      .filter((b) => b.type === type)
+                      .map((b) => (
+                        <option key={b.idx} value={`bar:${b.idx}`}>
+                          {b.name} ({b.weight})
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+              </fieldset>
 
               {movement.sets.map((set, sIdx) => (
                 <fieldset key={sIdx}>

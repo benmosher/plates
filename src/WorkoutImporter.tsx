@@ -6,11 +6,13 @@ import { Workout } from "./workout-types";
 
 const NONE = "@@none";
 const CREATE_PREFIX = "@@create:";
+const BAR_TYPE_PREFIX = "type:";
+const BAR_ID_PREFIX = "bar:";
 
 export default function WorkoutImporter() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { maxes, workouts, putMax, putWorkout } = useMassStorage();
+  const { maxes, bars, workouts, putMax, putWorkout } = useMassStorage();
 
   const encoded = searchParams.get("d");
   const [exported, setExported] = useState<ExportedWorkout | null>(null);
@@ -20,6 +22,8 @@ export default function WorkoutImporter() {
 
   // map from maxName → selected value (max id, NONE, or CREATE_PREFIX+name)
   const [maxMapping, setMaxMapping] = useState<Map<string, string>>(new Map());
+  // map from barType → selected value (NONE, BAR_TYPE_PREFIX+type, or BAR_ID_PREFIX+idx)
+  const [barTypeMapping, setBarTypeMapping] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!encoded) {
@@ -32,9 +36,11 @@ export default function WorkoutImporter() {
         setFolder(data.folder ?? "");
         // collect unique max names and auto-map
         const names = new Set<string>();
+        const barTypes = new Set<string>();
         for (const g of data.groups) {
           for (const m of g.movements) {
             if (m.maxName) names.add(m.maxName);
+            if (m.barType) barTypes.add(m.barType);
           }
         }
         const mapping = new Map<string, string>();
@@ -45,6 +51,14 @@ export default function WorkoutImporter() {
           mapping.set(name, match ? String(match.id!) : `${CREATE_PREFIX}${name}`);
         }
         setMaxMapping(mapping);
+
+        // auto-map bar types: default to matching type if bars of that type exist
+        const btMapping = new Map<string, string>();
+        for (const bt of barTypes) {
+          const hasMatch = bars.some((b) => b.type === bt);
+          btMapping.set(bt, hasMatch ? `${BAR_TYPE_PREFIX}${bt}` : NONE);
+        }
+        setBarTypeMapping(btMapping);
       },
       () => setError("Failed to decode workout data."),
     );
@@ -75,6 +89,13 @@ export default function WorkoutImporter() {
       .filter((n): n is string => n != null),
   )];
 
+  const uniqueBarTypes = [...new Set(
+    exported.groups
+      .flatMap((g) => g.movements)
+      .map((m) => m.barType)
+      .filter((t): t is string => t != null),
+  )];
+
   async function handleImport() {
     setImporting(true);
     try {
@@ -92,17 +113,36 @@ export default function WorkoutImporter() {
         }
       }
 
+      // resolve bar type mappings
+      const resolvedBarInfo = new Map<string, { barType?: string; barId?: number }>();
+      for (const [bt, value] of barTypeMapping) {
+        if (value === NONE) {
+          resolvedBarInfo.set(bt, {});
+        } else if (value.startsWith(BAR_ID_PREFIX)) {
+          const barIdx = Number(value.slice(BAR_ID_PREFIX.length));
+          const bar = bars.find((b) => b.idx === barIdx);
+          resolvedBarInfo.set(bt, { barType: bar?.type ?? bt, barId: barIdx });
+        } else if (value.startsWith(BAR_TYPE_PREFIX)) {
+          resolvedBarInfo.set(bt, { barType: value.slice(BAR_TYPE_PREFIX.length) });
+        }
+      }
+
       // build workout
       const trimmedFolder = folder.trim();
       const workout: Workout = {
         name: exported!.name,
         ...(trimmedFolder ? { folder: trimmedFolder } : {}),
         groups: exported!.groups.map((g) => ({
-          movements: g.movements.map((m) => ({
-            name: m.name,
-            maxId: m.maxName ? (resolvedMaxIds.get(m.maxName) ?? null) : null,
-            sets: m.sets,
-          })),
+          movements: g.movements.map((m) => {
+            const barInfo = m.barType ? (resolvedBarInfo.get(m.barType) ?? {}) : {};
+            return {
+              name: m.name,
+              maxId: m.maxName ? (resolvedMaxIds.get(m.maxName) ?? null) : null,
+              ...(barInfo.barType ? { barType: barInfo.barType } : {}),
+              ...(barInfo.barId != null ? { barId: barInfo.barId } : {}),
+              sets: m.sets,
+            };
+          }),
           ...(g.restSeconds != null ? { restSeconds: g.restSeconds } : {}),
           ...(g.notes ? { notes: g.notes } : {}),
         })),
@@ -174,6 +214,35 @@ export default function WorkoutImporter() {
                   Create new: {name}
                 </option>
                 <option value={NONE}>None (unlink)</option>
+              </select>
+            </label>
+          ))}
+        </article>
+      )}
+
+      {uniqueBarTypes.length > 0 && (
+        <article>
+          <header>
+            <strong>Link bar types</strong>
+          </header>
+          {uniqueBarTypes.map((bt) => (
+            <label key={bt}>
+              {bt}
+              <select
+                value={barTypeMapping.get(bt) ?? NONE}
+                onChange={(e) =>
+                  setBarTypeMapping((prev) => new Map(prev).set(bt, e.target.value))
+                }
+              >
+                <option value={`${BAR_TYPE_PREFIX}${bt}`}>{bt} (any)</option>
+                {bars
+                  .filter((b) => b.type === bt)
+                  .map((b) => (
+                    <option key={b.idx} value={`${BAR_ID_PREFIX}${b.idx}`}>
+                      {b.name} ({b.weight})
+                    </option>
+                  ))}
+                <option value={NONE}>None (ignore)</option>
               </select>
             </label>
           ))}

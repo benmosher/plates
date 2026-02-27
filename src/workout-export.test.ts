@@ -169,6 +169,64 @@ describe("exportWorkout edge cases", () => {
   });
 });
 
+describe("barType round-trip", () => {
+  test("preserves barType when present", async () => {
+    const withBarType: Workout = {
+      name: "Bar Day",
+      groups: [
+        {
+          movements: [
+            { name: "Back Squat", maxId: 1, barType: "barbell", sets: [{ reps: 5, count: 3, weight: 80 }] },
+          ],
+        },
+      ],
+    };
+    const encoded = await exportWorkout(withBarType, maxes);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.groups[0].movements[0].barType).toBe("barbell");
+  });
+
+  test("omits barType when absent", async () => {
+    const encoded = await exportWorkout(workout, maxes);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.groups[0].movements[0]).not.toHaveProperty("barType");
+  });
+
+  test("mixed barType and no-barType movements round-trip", async () => {
+    const mixed: Workout = {
+      name: "Mixed",
+      groups: [
+        {
+          movements: [
+            { name: "Squat", maxId: null, barType: "barbell", sets: [{ reps: 5, count: 1, weight: 135 }] },
+            { name: "Curls", maxId: null, sets: [{ reps: 12, count: 3, weight: 30 }] },
+          ],
+        },
+      ],
+    };
+    const encoded = await exportWorkout(mixed, []);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.groups[0].movements[0].barType).toBe("barbell");
+    expect(decoded.groups[0].movements[1]).not.toHaveProperty("barType");
+  });
+
+  test("dumbbell barType round-trips", async () => {
+    const db: Workout = {
+      name: "DB Day",
+      groups: [
+        {
+          movements: [
+            { name: "DB Press", maxId: null, barType: "dumbbell", sets: [{ reps: 10, count: 3, weight: 50 }] },
+          ],
+        },
+      ],
+    };
+    const encoded = await exportWorkout(db, []);
+    const decoded = await decodeWorkout(encoded);
+    expect(decoded.groups[0].movements[0].barType).toBe("dumbbell");
+  });
+});
+
 describe("folder round-trip", () => {
   test("preserves folder when present", async () => {
     const withFolder: Workout = {

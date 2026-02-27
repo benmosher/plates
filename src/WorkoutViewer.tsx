@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router";
-import { useMassStorage } from "./plate-db";
-import { WorkoutSet } from "./workout-types";
+import { useMassStorage, Bar } from "./plate-db";
+import { Movement, WorkoutSet } from "./workout-types";
 import ShareDialog from "./ShareDialog";
 
 function formatRest(seconds: number): string {
@@ -10,7 +10,7 @@ function formatRest(seconds: number): string {
   return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
 }
 
-function buildSetHash(set: WorkoutSet, maxWeight: number | null): string {
+function buildSetHash(set: WorkoutSet, maxWeight: number | null, movement: Movement, bars: readonly Bar[]): string {
   const params = new URLSearchParams();
   if (maxWeight != null) {
     params.set("pct", String(set.weight));
@@ -18,12 +18,24 @@ function buildSetHash(set: WorkoutSet, maxWeight: number | null): string {
   } else {
     params.set("weight", String(set.weight));
   }
+
+  // include bar info from movement
+  if (movement.barId != null) {
+    const bar = bars.find((b) => b.idx === movement.barId);
+    if (bar) {
+      params.set("bar", bar.type);
+      params.set("barWeight", String(bar.weight));
+    }
+  } else if (movement.barType) {
+    params.set("bar", movement.barType);
+  }
+
   return `/#${params.toString()}`;
 }
 
 export default function WorkoutViewer() {
   const { id } = useParams<{ id: string }>();
-  const { workouts, maxes } = useMassStorage();
+  const { workouts, maxes, bars } = useMassStorage();
   const workout = workouts.find((w) => w.id === Number(id));
 
   if (!workout) return <p>Workout not found.</p>;
@@ -77,7 +89,7 @@ export default function WorkoutViewer() {
                       );
                     }
                     return (
-                      <Link key={sIdx} to={buildSetHash(set, maxWeight)} role="button" className="secondary outline">
+                      <Link key={sIdx} to={buildSetHash(set, maxWeight, movement, bars)} role="button" className="secondary outline">
                         {count}{reps}{weight}
                       </Link>
                     );

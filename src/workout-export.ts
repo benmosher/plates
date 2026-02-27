@@ -4,6 +4,7 @@ import { Max } from "./plate-db";
 interface ExportedMovement {
   name: string;
   maxName: string | null;
+  barType?: string | null;
   sets: WorkoutSet[];
 }
 
@@ -25,7 +26,9 @@ export interface ExportedWorkout {
 //                       movement = [name, maxName|null, sets]
 //                       set = [reps, count, weight]
 type PackedSet = [reps: number, count: number, weight: number];
-type PackedMovement = [name: string, maxName: string | null, sets: PackedSet[]];
+type PackedMovement =
+  | [name: string, maxName: string | null, sets: PackedSet[]]
+  | [name: string, maxName: string | null, sets: PackedSet[], barType: string];
 type PackedGroup = [
   movements: PackedMovement[],
   restSeconds: number | null,
@@ -35,11 +38,11 @@ type PackedWorkout = [name: string, groups: PackedGroup[]] | [name: string, grou
 
 function packWorkout(w: ExportedWorkout): PackedWorkout {
   const groups = w.groups.map((g): PackedGroup => [
-    g.movements.map((m): PackedMovement => [
-      m.name,
-      m.maxName,
-      m.sets.map((s): PackedSet => [s.reps, s.count, s.weight]),
-    ]),
+    g.movements.map((m): PackedMovement => {
+      const sets = m.sets.map((s): PackedSet => [s.reps, s.count, s.weight]);
+      if (m.barType) return [m.name, m.maxName, sets, m.barType];
+      return [m.name, m.maxName, sets];
+    }),
     g.restSeconds ?? null,
     g.notes ?? null,
   ]);
@@ -54,11 +57,15 @@ function unpackWorkout(packed: PackedWorkout): ExportedWorkout {
     name,
     ...(folder ? { folder } : {}),
     groups: groups.map(([movements, restSeconds, notes]): ExportedGroup => ({
-      movements: movements.map(([movName, maxName, sets]): ExportedMovement => ({
-        name: movName,
-        maxName,
-        sets: sets.map(([reps, count, weight]): WorkoutSet => ({ reps, count, weight })),
-      })),
+      movements: movements.map((pm): ExportedMovement => {
+        const barType = pm.length > 3 ? (pm as [string, string | null, PackedSet[], string])[3] : undefined;
+        return {
+          name: pm[0],
+          maxName: pm[1],
+          ...(barType ? { barType } : {}),
+          sets: pm[2].map(([reps, count, weight]): WorkoutSet => ({ reps, count, weight })),
+        };
+      }),
       ...(restSeconds != null ? { restSeconds } : {}),
       ...(notes ? { notes } : {}),
     })),
@@ -120,6 +127,7 @@ export async function exportWorkout(
       movements: g.movements.map((m) => ({
         name: m.name,
         maxName: m.maxId != null ? (maxById.get(m.maxId)?.label ?? null) : null,
+        ...(m.barType ? { barType: m.barType } : {}),
         sets: m.sets,
       })),
       ...(g.restSeconds != null ? { restSeconds: g.restSeconds } : {}),
