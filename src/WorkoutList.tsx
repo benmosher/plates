@@ -78,15 +78,24 @@ export default function WorkoutList() {
           )}
         </>
       )}
-      <button
-        type="button"
-        onClick={async () => {
-          const id = await putWorkout({ name: "", groups: [] });
-          navigate(`/workouts/${id}/edit`);
-        }}
-      >
-        New workout
-      </button>
+      <div className="grid">
+        <button
+          type="button"
+          onClick={async () => {
+            const id = await putWorkout({ name: "", groups: [] });
+            navigate(`/workouts/${id}/edit`);
+          }}
+        >
+          New workout
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          onClick={() => navigate("/workouts/ai-import")}
+        >
+          Import from image
+        </button>
+      </div>
     </>
   );
 }
