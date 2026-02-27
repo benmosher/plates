@@ -42,9 +42,15 @@ export default function ShareDialog({ workout, buttonStyle }: { workout: Workout
                 <button
                   type="button"
                   style={{ marginTop: "1rem" }}
-                  onClick={() => navigator.clipboard.writeText(shareUrl)}
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({ url: shareUrl, title: workout.name || "Workout" });
+                    } else {
+                      navigator.clipboard.writeText(shareUrl);
+                    }
+                  }}
                 >
-                  Copy link
+                  {navigator.share ? "Share" : "Copy link"}
                 </button>
               </div>
             </div>
