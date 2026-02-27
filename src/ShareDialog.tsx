@@ -8,6 +8,7 @@ export default function ShareDialog({ workout, buttonStyle }: { workout: Workout
   const { maxes } = useMassStorage();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const canUseWebShare = typeof (navigator as { share?: unknown }).share === 'function';
 
   async function handleShare() {
     const encoded = await exportWorkout(workout, maxes);
@@ -43,14 +44,14 @@ export default function ShareDialog({ workout, buttonStyle }: { workout: Workout
                   type="button"
                   style={{ marginTop: "1rem" }}
                   onClick={() => {
-                    if (navigator.share) {
+                    if (canUseWebShare) {
                       navigator.share({ url: shareUrl, title: workout.name || "Workout" });
                     } else {
                       navigator.clipboard.writeText(shareUrl);
                     }
                   }}
                 >
-                  {navigator.share ? "Share" : "Copy link"}
+                  {canUseWebShare ? "Share" : "Copy link"}
                 </button>
               </div>
             </div>
