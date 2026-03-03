@@ -4,42 +4,6 @@ import { Workout, MovementGroup, Movement, WorkoutSet } from "./workout-types";
 import { numbdfined } from "./utils";
 import DoubleClickConfirmButton from "./DoubleClickConfirmButton";
 
-/** Parse human-readable rest time to seconds. Handles: "3min", "90s", "1:30", "90". */
-function parseRestSeconds(input: string): number | undefined {
-  const s = input.trim();
-  if (!s) return undefined;
-
-  // "1:30" → 90
-  const colonMatch = s.match(/^(\d+):(\d{2})$/);
-  if (colonMatch) return parseInt(colonMatch[1]) * 60 + parseInt(colonMatch[2]);
-
-  // "2min30s", "2m30s"
-  const compoundMatch = s.match(/^(\d+)\s*m(?:in)?\s*(\d+)\s*s(?:ec)?$/i);
-  if (compoundMatch)
-    return parseInt(compoundMatch[1]) * 60 + parseInt(compoundMatch[2]);
-
-  // "3min", "3m"
-  const minMatch = s.match(/^(\d+(?:\.\d+)?)\s*m(?:in)?$/i);
-  if (minMatch) return Math.round(parseFloat(minMatch[1]) * 60);
-
-  // "90s", "90sec"
-  const secMatch = s.match(/^(\d+)\s*s(?:ec)?$/i);
-  if (secMatch) return parseInt(secMatch[1]);
-
-  // plain number
-  const num = parseFloat(s);
-  if (!isNaN(num)) return Math.round(num);
-
-  return undefined;
-}
-
-function formatRestSeconds(seconds: number): string {
-  if (seconds % 60 === 0) return `${seconds / 60}min`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
-}
-
 export default function WorkoutEditor() {
   const { id } = useParams<{ id: string }>();
   const { workouts, putWorkout, deleteWorkout, maxes, bars } = useMassStorage();
@@ -298,15 +262,10 @@ export default function WorkoutEditor() {
               <input
                 type="text"
                 placeholder="e.g. 3min"
-                defaultValue={
-                  group.restSeconds != null
-                    ? formatRestSeconds(group.restSeconds)
-                    : ""
-                }
+                defaultValue={group.rest ?? ""}
                 onBlur={(e) => {
-                  const secs = parseRestSeconds(e.target.value);
-                  updateGroup(gIdx, { restSeconds: secs });
-                  e.target.value = secs != null ? formatRestSeconds(secs) : "";
+                  const val = e.target.value.trim() || undefined;
+                  updateGroup(gIdx, { rest: val });
                 }}
               />
             </fieldset>

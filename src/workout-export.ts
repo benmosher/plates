@@ -10,7 +10,7 @@ interface ExportedMovement {
 
 interface ExportedGroup {
   movements: ExportedMovement[];
-  restSeconds?: number;
+  rest?: string;
   notes?: string | null;
 }
 
@@ -31,7 +31,7 @@ type PackedMovement =
   | [name: string, maxName: string | null, sets: PackedSet[], barType: string];
 type PackedGroup = [
   movements: PackedMovement[],
-  restSeconds: number | null,
+  rest: string | null,
   notes: string | null,
 ];
 type PackedWorkout = [name: string, groups: PackedGroup[]] | [name: string, groups: PackedGroup[], folder: string];
@@ -43,7 +43,7 @@ function packWorkout(w: ExportedWorkout): PackedWorkout {
       if (m.barType) return [m.name, m.maxName, sets, m.barType];
       return [m.name, m.maxName, sets];
     }),
-    g.restSeconds ?? null,
+    g.rest ?? null,
     g.notes ?? null,
   ]);
   if (w.folder) return [w.name, groups, w.folder];
@@ -56,7 +56,7 @@ function unpackWorkout(packed: PackedWorkout): ExportedWorkout {
   return {
     name,
     ...(folder ? { folder } : {}),
-    groups: groups.map(([movements, restSeconds, notes]): ExportedGroup => ({
+    groups: groups.map(([movements, rest, notes]): ExportedGroup => ({
       movements: movements.map((pm): ExportedMovement => {
         const barType = pm.length > 3 ? (pm as [string, string | null, PackedSet[], string])[3] : undefined;
         return {
@@ -66,7 +66,7 @@ function unpackWorkout(packed: PackedWorkout): ExportedWorkout {
           sets: pm[2].map(([reps, count, weight]): WorkoutSet => ({ reps, count, weight })),
         };
       }),
-      ...(restSeconds != null ? { restSeconds } : {}),
+      ...(rest != null ? { rest: String(rest) } : {}),
       ...(notes ? { notes } : {}),
     })),
   };
@@ -141,7 +141,7 @@ export async function exportWorkout(
           sets: m.sets,
         };
       }),
-      ...(g.restSeconds != null ? { restSeconds: g.restSeconds } : {}),
+      ...(g.rest != null ? { rest: g.rest } : {}),
       ...(g.notes ? { notes: g.notes } : {}),
     })),
   };

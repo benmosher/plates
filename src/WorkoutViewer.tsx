@@ -3,13 +3,6 @@ import { useMassStorage, Bar } from "./plate-db";
 import { Movement, WorkoutSet } from "./workout-types";
 import ShareDialog from "./ShareDialog";
 
-function formatRest(seconds: number): string {
-  if (seconds % 60 === 0) return `${seconds / 60}min`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
-}
-
 function buildSetHash(set: WorkoutSet, maxWeight: number | null, movement: Movement, bars: readonly Bar[]): string {
   const params = new URLSearchParams();
   if (maxWeight != null) {
@@ -64,7 +57,7 @@ export default function WorkoutViewer() {
           <details open>
             <summary>
               <strong>{summaryName}</strong>
-              {group.restSeconds != null && ` — ${formatRest(group.restSeconds)} rest`}
+              {group.rest != null && ` — ${group.rest} rest`}
             </summary>
 
             {group.notes && <p><small>{group.notes}</small></p>}
