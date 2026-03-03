@@ -14,7 +14,7 @@ export interface Movement {
 
 export interface MovementGroup {
   movements: Movement[];
-  restSeconds?: number;
+  rest?: string;
   notes?: string | null;
 }
 

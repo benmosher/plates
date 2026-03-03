@@ -141,7 +141,7 @@ export default function WorkoutImporter() {
               sets: m.sets,
             };
           }),
-          ...(g.restSeconds != null ? { restSeconds: g.restSeconds } : {}),
+          ...(g.rest != null ? { rest: g.rest } : {}),
           ...(g.notes ? { notes: g.notes } : {}),
         })),
       };
@@ -166,7 +166,7 @@ export default function WorkoutImporter() {
             {group.movements.map((m) => m.name || "(unnamed)").join(" + ")}
             {" — "}
             {group.movements.reduce((n, m) => n + m.sets.reduce((s, set) => s + set.count, 0), 0)} sets
-            {group.restSeconds != null && `, ${group.restSeconds}s rest`}
+            {group.rest != null && `, ${group.rest} rest`}
           </p>
         ))}
       </article>

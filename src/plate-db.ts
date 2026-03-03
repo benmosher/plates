@@ -3,14 +3,32 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { Workout, MovementGroup } from "./workout-types";
 
+/** Convert a legacy restSeconds number to a human-readable string. */
+function migrateRestSeconds(seconds: number): string {
+  if (seconds % 60 === 0) return `${seconds / 60}min`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}:${String(s).padStart(2, "0")}` : `${s}s`;
+}
+
+/** Build the rest field from a raw group, handling old restSeconds numbers. */
+function migrateRest(item: any): string | undefined {
+  if (typeof item.rest === "string") return item.rest || undefined;
+  if (typeof item.restSeconds === "number") return migrateRestSeconds(item.restSeconds);
+  return undefined;
+}
+
 /** Migrate old formats to current shape. */
 function migrateWorkout(raw: any): Workout {
   const items: any[] = raw.groups ?? raw.movements ?? [];
-  const groups: MovementGroup[] = items.map((item) =>
-    "sets" in item
-      ? { movements: [{ name: item.name, maxId: item.maxId, sets: migrateSets(item.sets) }], restSeconds: item.restSeconds }
-      : { ...item, movements: item.movements.map((m: any) => ({ ...m, sets: migrateSets(m.sets) })) },
-  );
+  const groups: MovementGroup[] = items.map((item) => {
+    const rest = migrateRest(item);
+    if ("sets" in item) {
+      return { movements: [{ name: item.name, maxId: item.maxId, sets: migrateSets(item.sets) }], ...(rest ? { rest } : {}) };
+    }
+    const { restSeconds: _, rest: __, ...groupRest } = item;
+    return { ...groupRest, ...(rest ? { rest } : {}), movements: item.movements.map((m: any) => ({ ...m, sets: migrateSets(m.sets) })) };
+  });
   return { id: raw.id, name: raw.name, ...(raw.folder ? { folder: raw.folder } : {}), groups };
 }
 

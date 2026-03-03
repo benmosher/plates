@@ -27,7 +27,7 @@ const workout: Workout = {
           ],
         },
       ],
-      restSeconds: 180,
+      rest: "3min",
     },
     {
       movements: [
@@ -83,16 +83,16 @@ describe("exportWorkout + decodeWorkout round-trip", () => {
     ]);
   });
 
-  test("preserves restSeconds when present", async () => {
+  test("preserves rest when present", async () => {
     const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
-    expect(decoded.groups[0].restSeconds).toBe(180);
+    expect(decoded.groups[0].rest).toBe("3min");
   });
 
-  test("omits restSeconds when absent", async () => {
+  test("omits rest when absent", async () => {
     const encoded = await exportWorkout(workout, maxes, bars);
     const decoded = await decodeWorkout(encoded);
-    expect(decoded.groups[1].restSeconds).toBeUndefined();
+    expect(decoded.groups[1].rest).toBeUndefined();
   });
 
   test("preserves movement names", async () => {
@@ -162,7 +162,7 @@ describe("exportWorkout edge cases", () => {
             { name: "A1", maxId: 1, sets: [{ reps: 10, count: 1, weight: 60 }] },
             { name: "A2", maxId: null, sets: [{ reps: 10, count: 1, weight: 50 }] },
           ],
-          restSeconds: 60,
+          rest: "60s",
         },
       ],
     };
