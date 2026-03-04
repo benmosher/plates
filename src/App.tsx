@@ -103,18 +103,33 @@ function BarComputer({
     return filtered;
   }, [plates]);
 
-  const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
+  const selectedBars = useMemo(
+    () =>
+      bars.filter(
+        (b) =>
+          b.type === barType && (barWeight == null || b.weight === barWeight),
+      ),
+    [bars, barType, barWeight],
+  );
+
+  // filter plates to only those usable by the selected bar(s)
+  const sliderPlates = useMemo(() => {
+    if (!selectedBars.length) return validPlates;
+    return validPlates.filter((p) =>
+      selectedBars.some((bar) => {
+        if (bar.plateThreshold != null && p.weight > bar.plateThreshold)
+          return false;
+        if (bar.plateLimits?.[p.weight] === 0) return false;
+        return true;
+      }),
+    );
+  }, [selectedBars, validPlates]);
+
+  const weightStep = sliderPlates[0] ? 2 * sliderPlates[0].weight : undefined;
 
   const possibleWeights = useMemo(
-    () =>
-      determineWeightSpace(
-        bars.filter(
-          (b) =>
-            b.type === barType && (barWeight == null || b.weight === barWeight),
-        ),
-        validPlates,
-      ),
-    [bars, barType, barWeight, validPlates],
+    () => determineWeightSpace(selectedBars, validPlates),
+    [selectedBars, validPlates],
   );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
@@ -226,9 +241,15 @@ function BarComputer({
             max={weightMax}
             step={weightStep}
             value={target ?? ""}
-            onChange={(e) =>
-              dispatchState({ target: numbdfined(e.target.value) })
-            }
+            onChange={(e) => {
+              const raw = numbdfined(e.target.value);
+              dispatchState({
+                target:
+                  raw != null
+                    ? (closestTarget(raw, possibleWeights) ?? raw)
+                    : undefined,
+              });
+            }}
           />
 
           <small>or use a percentage:</small>
