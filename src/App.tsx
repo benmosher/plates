@@ -95,6 +95,15 @@ function BarComputer({
     barType = bars[0].type;
   }
 
+  const selectedBars = useMemo(
+    () =>
+      bars.filter(
+        (b) =>
+          b.type === barType && (barWeight == null || b.weight === barWeight),
+      ),
+    [bars, barType, barWeight],
+  );
+
   const validPlates = useMemo<readonly (Plate & { count: number })[]>(() => {
     const filtered = plates.filter((p) => p.count && p.weight) as (Plate & {
       count: number;
@@ -106,15 +115,8 @@ function BarComputer({
   const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
 
   const possibleWeights = useMemo(
-    () =>
-      determineWeightSpace(
-        bars.filter(
-          (b) =>
-            b.type === barType && (barWeight == null || b.weight === barWeight),
-        ),
-        validPlates,
-      ),
-    [bars, barType, barWeight, validPlates],
+    () => determineWeightSpace(selectedBars, validPlates),
+    [selectedBars, validPlates],
   );
   const weightMin = possibleWeights ? possibleWeights[0] : undefined;
   const weightMax = possibleWeights
@@ -226,9 +228,15 @@ function BarComputer({
             max={weightMax}
             step={weightStep}
             value={target ?? ""}
-            onChange={(e) =>
-              dispatchState({ target: numbdfined(e.target.value) })
-            }
+            onChange={(e) => {
+              const raw = numbdfined(e.target.value);
+              dispatchState({
+                target:
+                  raw != null
+                    ? (closestTarget(raw, possibleWeights) ?? raw)
+                    : undefined,
+              });
+            }}
           />
 
           <small>or use a percentage:</small>
