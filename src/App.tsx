@@ -109,16 +109,8 @@ function BarComputer({
       count: number;
     })[];
     filtered.sort((a, b) => a.weight - b.weight);
-    if (!selectedBars.length) return filtered;
-    return filtered.filter((p) =>
-      selectedBars.some((bar) => {
-        if (bar.plateThreshold != null && p.weight > bar.plateThreshold)
-          return false;
-        if (bar.plateLimits?.[p.weight] === 0) return false;
-        return true;
-      }),
-    );
-  }, [plates, selectedBars]);
+    return filtered;
+  }, [plates]);
 
   const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
 
