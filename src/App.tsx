@@ -95,14 +95,6 @@ function BarComputer({
     barType = bars[0].type;
   }
 
-  const validPlates = useMemo<readonly (Plate & { count: number })[]>(() => {
-    const filtered = plates.filter((p) => p.count && p.weight) as (Plate & {
-      count: number;
-    })[];
-    filtered.sort((a, b) => a.weight - b.weight);
-    return filtered;
-  }, [plates]);
-
   const selectedBars = useMemo(
     () =>
       bars.filter(
@@ -112,10 +104,13 @@ function BarComputer({
     [bars, barType, barWeight],
   );
 
-  // filter plates to only those usable by the selected bar(s)
-  const sliderPlates = useMemo(() => {
-    if (!selectedBars.length) return validPlates;
-    return validPlates.filter((p) =>
+  const validPlates = useMemo<readonly (Plate & { count: number })[]>(() => {
+    const filtered = plates.filter((p) => p.count && p.weight) as (Plate & {
+      count: number;
+    })[];
+    filtered.sort((a, b) => a.weight - b.weight);
+    if (!selectedBars.length) return filtered;
+    return filtered.filter((p) =>
       selectedBars.some((bar) => {
         if (bar.plateThreshold != null && p.weight > bar.plateThreshold)
           return false;
@@ -123,9 +118,9 @@ function BarComputer({
         return true;
       }),
     );
-  }, [selectedBars, validPlates]);
+  }, [plates, selectedBars]);
 
-  const weightStep = sliderPlates[0] ? 2 * sliderPlates[0].weight : undefined;
+  const weightStep = validPlates[0] ? 2 * validPlates[0].weight : undefined;
 
   const possibleWeights = useMemo(
     () => determineWeightSpace(selectedBars, validPlates),
