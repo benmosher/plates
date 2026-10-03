@@ -411,16 +411,30 @@ function putWorkout(workout: Workout): Promise<number> {
     throw new Error("workout database not initialized");
   }
 
+  // update existing workouts in memory synchronously, so that edits made
+  // before the DB write completes build on this one instead of clobbering it
+  if (workout.id != null) {
+    WORKOUT_MAP.set(workout.id, workout);
+    READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
+    _subscriptions.forEach((cb) => cb());
+  }
+
   const txn = workoutDb.transaction("workouts", "readwrite");
   const store = txn.objectStore("workouts");
-  return new Promise((resolve) => {
-    store.put(workout).onsuccess = function () {
+  return new Promise((resolve, reject) => {
+    const request = store.put(workout);
+    request.onsuccess = function () {
       const id = this.result as number;
-      const saved = { ...workout, id };
-      WORKOUT_MAP.set(id, saved);
-      READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
-      _subscriptions.forEach((cb) => cb());
+      if (workout.id == null) {
+        WORKOUT_MAP.set(id, { ...workout, id });
+        READ_VIEW = { ...READ_VIEW, workouts: WORKOUT_MAP };
+        _subscriptions.forEach((cb) => cb());
+      }
       resolve(id);
+    };
+    request.onerror = function () {
+      console.error("failed to save workout", request.error);
+      reject(request.error);
     };
     txn.commit();
   });
