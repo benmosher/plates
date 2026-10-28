@@ -1,5 +1,5 @@
 import { expect, describe, test } from "vitest";
-import { numbdfined, numbornull } from "./utils";
+import { numbdfined, numbornull, roundToStep } from "./utils";
 
 describe("numbdfined", () => {
   test("converts numeric string to number", () => {
@@ -31,5 +31,20 @@ describe("numbornull", () => {
   });
   test("returns null for empty string", () => {
     expect(numbornull("")).toBeNull();
+  });
+});
+
+describe("roundToStep", () => {
+  test("rounds to nearest multiple of step", () => {
+    expect(roundToStep(266.25, 5)).toBe(265);
+    expect(roundToStep(267.5, 5)).toBe(270);
+  });
+  test("handles fractional steps", () => {
+    expect(roundToStep(41.3, 2.5)).toBe(42.5);
+  });
+  test("returns value unchanged when step is missing", () => {
+    expect(roundToStep(266.25, undefined)).toBe(266.25);
+    expect(roundToStep(266.25, null)).toBe(266.25);
+    expect(roundToStep(266.25, 0)).toBe(266.25);
   });
 });
