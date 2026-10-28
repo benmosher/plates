@@ -202,7 +202,6 @@ function BarComputer({
               style={{ flex: 1 }}
               id="target-number"
               placeholder="work weight"
-              onFocus={clear}
               onKeyDown={onEnterBlur}
               onBlur={scrollToTop}
               aria-invalid={!validTarget}
