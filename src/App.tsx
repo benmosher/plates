@@ -8,7 +8,7 @@ import { useDeferredValue, useMemo } from "react";
 import { useMassStorage, Bar, Max, Plate } from "./plate-db";
 import MassConfig from "./MassConfig";
 import { useWeightSet } from "./useWeightSet";
-import { numbdfined } from "./utils";
+import { numbdfined, roundToStep } from "./utils";
 import { NumberInput } from "./NumberInput";
 import { HiddenDeleteFieldset } from "./HiddenDeleteFieldset";
 import BarView from "./BarView";
@@ -125,9 +125,10 @@ function BarComputer({
 
   // use percentage to determine target if not defined
   if (target == null && percentage != null && percentageBase != null) {
-    target =
-      closestTarget((percentage * percentageBase) / 100, possibleWeights) ??
-      Math.round((percentage * percentageBase) / 100);
+    const raw = (percentage * percentageBase) / 100;
+    const nudge = chooseBar(bars, raw, barType, barWeight)?.sliderMinStep;
+    const rounded = roundToStep(raw, nudge);
+    target = closestTarget(rounded, possibleWeights) ?? Math.round(rounded);
   }
 
   const deferredTarget = useDeferredValue(target);
