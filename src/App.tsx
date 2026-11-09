@@ -272,7 +272,6 @@ function BarComputer({
                 step={1}
                 value={percentage ?? ""}
                 placeholder="%"
-                onFocus={clear}
                 onKeyDown={onEnterBlur}
                 onBlur={scrollToTop}
                 onChange={(e) =>
@@ -422,11 +421,6 @@ function MaxEditor({
       />
     </HiddenDeleteFieldset>
   );
-}
-
-/** autoclear on focus for easier changes */
-function clear(e: React.FocusEvent<HTMLInputElement>) {
-  e.target.value = "";
 }
 
 function scrollToTop() {
