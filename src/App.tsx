@@ -7,7 +7,6 @@ import {
 import { useDeferredValue, useMemo } from "react";
 import { useMassStorage, Bar, Max, Plate } from "./plate-db";
 import MassConfig from "./MassConfig";
-import { useWeightSet } from "./useWeightSet";
 import { numbdfined, roundToStep } from "./utils";
 import { NumberInput } from "./NumberInput";
 import { HiddenDeleteFieldset } from "./HiddenDeleteFieldset";
@@ -139,9 +138,6 @@ function BarComputer({
   );
   const validTarget = possibleWeights.includes(deferredTarget ?? -1);
 
-  const weightSet = useWeightSet();
-  const inWeightSet = target != null && weightSet.weights.includes(target);
-
   return (
     <>
       <select
@@ -178,12 +174,6 @@ function BarComputer({
         </optgroup>
       </select>
       <BarView determinedPlates={determinedPlates} bar={activeBar} />
-      <WeightSet
-        weights={weightSet.weights}
-        target={target}
-        dispatchState={dispatchState}
-        onClear={weightSet.clear}
-      />
       <section>
         <form>
           <datalist id="target-options">
@@ -193,33 +183,18 @@ function BarComputer({
               </option>
             ))}
           </datalist>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "start" }}>
-            <NumberInput
-              value={target}
-              onChange={(v) => dispatchState({ target: v })}
-              step={activeBar?.sliderMinStep}
-              min={weightMin}
-              max={weightMax}
-              style={{ flex: 1 }}
-              id="target-number"
-              placeholder="work weight"
-              onKeyDown={onEnterBlur}
-              onBlur={scrollToTop}
-              aria-invalid={!validTarget}
-            />
-            {target != null && (
-              <button
-                type="button"
-                className="secondary"
-                style={{ width: "auto", paddingInline: "0.75rem" }}
-                onClick={() =>
-                  inWeightSet ? weightSet.remove(target) : weightSet.add(target)
-                }
-              >
-                {inWeightSet ? "\u2212" : "+"}
-              </button>
-            )}
-          </div>
+          <NumberInput
+            value={target}
+            onChange={(v) => dispatchState({ target: v })}
+            step={activeBar?.sliderMinStep}
+            min={weightMin}
+            max={weightMax}
+            id="target-number"
+            placeholder="work weight"
+            onKeyDown={onEnterBlur}
+            onBlur={scrollToTop}
+            aria-invalid={!validTarget}
+          />
           <input
             id="target-range"
             type="range"
@@ -334,40 +309,6 @@ function BarComputer({
           </small>
         </form>
       </section>
-    </>
-  );
-}
-
-function WeightSet({
-  weights,
-  target,
-  dispatchState,
-  onClear,
-}: {
-  weights: number[];
-  target: number | undefined | null;
-  dispatchState: (action: { target: number }) => void;
-  onClear: () => void;
-}) {
-  if (!weights.length) return null;
-
-  return (
-    <>
-      <div className="grid">
-        {weights.map((w) => (
-          <button
-            type="button"
-            key={w}
-            className={w === target ? undefined : "secondary"}
-            onClick={() => dispatchState({ target: w })}
-          >
-            {w}
-          </button>
-        ))}
-      </div>
-      <small>
-        (<a href="#" onClick={(e) => { e.preventDefault(); onClear(); }}>clear set</a>)
-      </small>
     </>
   );
 }
