@@ -220,7 +220,7 @@ function BarComputer({
               <button
                 type="button"
                 className="secondary"
-                style={{ width: "auto", paddingInline: "0.5rem" }}
+                style={{ width: "auto", paddingInline: "1rem" }}
                 onClick={() =>
                   dispatchState({
                     percentage: Math.max(1, (percentage ?? 50) - 5),
@@ -232,7 +232,7 @@ function BarComputer({
               <button
                 type="button"
                 className="secondary"
-                style={{ width: "auto", paddingInline: "0.5rem" }}
+                style={{ width: "auto", paddingInline: "1rem" }}
                 onClick={() =>
                   dispatchState({
                     percentage: Math.max(1, (percentage ?? 50) - 1),
@@ -256,7 +256,7 @@ function BarComputer({
               <button
                 type="button"
                 className="secondary"
-                style={{ width: "auto", paddingInline: "0.5rem" }}
+                style={{ width: "auto", paddingInline: "1rem" }}
                 onClick={() =>
                   dispatchState({
                     percentage: (percentage ?? 50) + 1,
@@ -268,7 +268,7 @@ function BarComputer({
               <button
                 type="button"
                 className="secondary"
-                style={{ width: "auto", paddingInline: "0.5rem" }}
+                style={{ width: "auto", paddingInline: "1rem" }}
                 onClick={() =>
                   dispatchState({
                     percentage: (percentage ?? 50) + 5,
