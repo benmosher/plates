@@ -75,22 +75,6 @@ describe("plates needed", () => {
     ]);
   });
 
-  test("skips avoided plates entirely if exhausting heavier plates misses", () => {
-    const plates = [
-      { weight: 10, count: 1 },
-      { weight: 25, count: 2 },
-      { weight: 35, count: 1, avoid: true },
-      { weight: 45, count: 1 },
-    ];
-    // 235 on 45lb bar = 95 per side
-    // exhausted-first: 45+35+10 = 90 (miss)
-    // without 35: 45+25+25 = 95
-    expect(determinePlates(235, { weight: 45 }, plates)).toEqual([
-      { weight: 45, count: 1 },
-      { weight: 25, count: 2 },
-    ]);
-  });
-
   test("returns empty for null target", () => {
     expect(determinePlates(null, { weight: 45 }, singles([10]))).toEqual([]);
   });

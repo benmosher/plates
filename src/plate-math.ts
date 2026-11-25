@@ -15,23 +15,11 @@ export function determinePlates<
   if (!target || !handle || !plates.length) return [];
 
   if (plates.some((p) => p.avoid)) {
-    const targetPerSide = (target - handle.weight) / 2;
-    const isExact = (result: readonly Plate[]) =>
-      Math.abs(
-        result.reduce((sum, p) => sum + p.weight * p.count, 0) - targetPerSide,
-      ) < 0.001;
-
     // prefer: avoided plates only once all heavier plates are exhausted
-    const exhausted = _greedyPlates(target, handle, plates, true);
-    if (isExact(exhausted)) return exhausted;
-
-    // next: avoided plates not at all
-    const nonAvoided = _greedyPlates(
-      target,
-      handle,
-      plates.filter((p) => !p.avoid),
-    );
-    if (isExact(nonAvoided)) return nonAvoided;
+    const result = _greedyPlates(target, handle, plates, true);
+    const used = result.reduce((sum, p) => sum + p.weight * p.count, 0);
+    const targetPerSide = (target - handle.weight) / 2;
+    if (Math.abs(used - targetPerSide) < 0.001) return result;
   }
 
   return _greedyPlates(target, handle, plates);
