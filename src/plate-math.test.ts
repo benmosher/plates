@@ -60,6 +60,21 @@ describe("plates needed", () => {
     ]);
   });
 
+  test("uses avoided plates once heavier plates are exhausted", () => {
+    const plates = [
+      { weight: 10, count: 3 },
+      { weight: 25, count: 1 },
+      { weight: 35, count: 1, avoid: true },
+      { weight: 45, count: 2 },
+    ];
+    // 295 on 45lb bar = 125 per side
+    // 45s exhausted at 90, so 35 is preferred over 25+10
+    expect(determinePlates(295, { weight: 45 }, plates)).toEqual([
+      { weight: 45, count: 2 },
+      { weight: 35, count: 1, avoid: true },
+    ]);
+  });
+
   test("returns empty for null target", () => {
     expect(determinePlates(null, { weight: 45 }, singles([10]))).toEqual([]);
   });
